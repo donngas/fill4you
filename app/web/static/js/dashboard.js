@@ -1,12 +1,18 @@
 const blocks = JSON.parse(document.querySelector("#blocks-data").textContent);
 const dashboard = document.querySelector(".dashboard");
 const form = document.querySelector("#block-form");
+const showFormButton = document.querySelector("#show-block-form");
 const sourceInput = document.querySelector("#source-input");
 const heading = document.querySelector("#form-heading");
 const recurringFields = document.querySelector("#recurring-fields");
 const oneTimeFields = document.querySelector("#one-time-fields");
 const cancelEdit = document.querySelector("#cancel-edit");
 const titles = { timetable: "시간표", manual: "직접 추가", google_calendar: "Google Calendar" };
+
+function updateEditorVisibility(showForm) {
+  form.hidden = !showForm;
+  showFormButton.hidden = showForm || sourceInput.value === "google_calendar";
+}
 
 function setScheduleType(type) {
   const recurring = type === "recurring";
@@ -17,14 +23,20 @@ function setScheduleType(type) {
 }
 
 function resetForm() {
+  const selectedSource = sourceInput.value;
   form.action = "/blocks";
   form.reset();
+  sourceInput.value = selectedSource;
   document.querySelector('input[name="schedule_type"][value="recurring"]').checked = true;
   setScheduleType("recurring");
-  heading.textContent = `${titles[sourceInput.value]} 추가`;
+  heading.textContent = `${titles[selectedSource]} 추가`;
+  showFormButton.textContent = `${titles[selectedSource]} 추가`;
   document.querySelector("#save-button").textContent = "추가";
   cancelEdit.hidden = true;
+  updateEditorVisibility(false);
 }
+
+showFormButton.addEventListener("click", () => updateEditorVisibility(true));
 
 document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => {
   radio.addEventListener("change", () => setScheduleType(radio.value));
@@ -36,14 +48,13 @@ document.querySelectorAll(".source-tab").forEach((tab) => {
     document.querySelectorAll(".source-tab").forEach((item) => item.classList.toggle("is-active", item === tab));
     document.querySelectorAll("[data-source-list]").forEach((list) => { list.hidden = list.dataset.sourceList !== source; });
     resetForm();
-    form.hidden = source === "google_calendar";
   });
 });
 document.querySelectorAll(".edit-block").forEach((button) => {
   button.addEventListener("click", () => {
     const block = blocks.find((item) => item.id === Number(button.dataset.blockId));
     sourceInput.value = block.source;
-    form.hidden = false;
+    updateEditorVisibility(true);
     form.action = `/blocks/${block.id}`;
     document.querySelector("#title-input").value = block.title;
     document.querySelector(`input[name="schedule_type"][value="${block.isRecurring ? "recurring" : "one_time"}"]`).checked = true;
@@ -63,6 +74,8 @@ cancelEdit.addEventListener("click", resetForm);
 const calendarScroll = document.querySelector("#calendar-scroll");
 const grid = document.querySelector("#week-grid");
 const loadMoreButton = document.querySelector("#load-more-dates");
+const collapseTwoWeeksButton = document.querySelector("#collapse-two-weeks");
+const collapseAllDatesButton = document.querySelector("#collapse-all-dates");
 const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
 const hourHeight = 56;
 const minutesPerHour = 60;
@@ -112,6 +125,9 @@ function renderCalendar() {
   dates.forEach((date, index) => {
     blocks.filter((block) => blockOccursOnDate(block, date)).forEach((block) => renderBlock(block, index));
   });
+  const canCollapse = dates.length > 14;
+  collapseTwoWeeksButton.disabled = !canCollapse;
+  collapseAllDatesButton.disabled = !canCollapse;
 }
 
 function renderBlock(block, dayIndex) {
@@ -130,11 +146,23 @@ function renderBlock(block, dayIndex) {
 }
 
 loadMoreButton.addEventListener("click", () => {
+  const previousScrollLeft = calendarScroll.scrollLeft;
   const nextDate = new Date(dates.at(-1));
   nextDate.setDate(nextDate.getDate() + 1);
   dates = dates.concat(createDates(formatDate(nextDate), 14));
   renderCalendar();
-  calendarScroll.scrollLeft = calendarScroll.scrollWidth;
+  calendarScroll.scrollLeft = previousScrollLeft;
+});
+
+collapseTwoWeeksButton.addEventListener("click", () => {
+  if (dates.length <= 14) return;
+  dates = dates.slice(0, -14);
+  renderCalendar();
+});
+
+collapseAllDatesButton.addEventListener("click", () => {
+  dates = dates.slice(0, 14);
+  renderCalendar();
 });
 
 renderCalendar();

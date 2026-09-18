@@ -16,7 +16,8 @@
         <button type="button" class="source-tab" data-source="manual">직접 추가</button>
         <button type="button" class="source-tab" data-source="google_calendar">Google Calendar</button>
       </div>
-      <form id="block-form" class="block-form" method="post" action="/blocks">
+      <button id="show-block-form" type="button" class="add-block-button">시간표 추가</button>
+      <form id="block-form" class="block-form" method="post" action="/blocks" hidden>
         <input id="source-input" type="hidden" name="source" value="timetable">
         <h2 id="form-heading">시간표 추가</h2>
         <label>이름<input id="title-input" name="title" required maxlength="255" placeholder="예: 알고리즘"></label>
@@ -45,7 +46,11 @@
       <div id="calendar-scroll" class="calendar-scroll">
           <div class="calendar-canvas">
           <div id="week-grid" class="week-grid"></div>
-          <div class="load-more-panel"><button id="load-more-dates" type="button" class="load-more-button">더 불러오기</button></div>
+          <div class="load-more-panel">
+            <button id="load-more-dates" type="button" class="load-more-button">더 불러오기</button>
+            <button id="collapse-two-weeks" type="button" class="load-more-button" disabled>2주 접기</button>
+            <button id="collapse-all-dates" type="button" class="load-more-button" disabled>모두 접기</button>
+          </div>
         </div>
       </div>
     </section>
