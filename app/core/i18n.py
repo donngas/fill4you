@@ -4,7 +4,7 @@ Language = Literal["ko", "en"]
 
 MESSAGES: dict[str, dict[Language, str]] = {
     "app_tagline": {
-        "ko": "When2meet을 위한 첫 번째 가능 시간표",
+        "ko": "당신을 위한 When2meet 초안 자동완성",
         "en": "A first-draft availability for When2meet",
     },
     "sign_in_google": {"ko": "Google로 계속하기", "en": "Continue with Google"},
