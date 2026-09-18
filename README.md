@@ -2,6 +2,11 @@
 
 fill4you creates a first-draft availability for When2meet from a university timetable, Google Calendar events, and manual busy-time blocks.
 
+## Run locally
+
+Copy `.env.example` to `.env`, set a secure `SESSION_SECRET`, then run `docker compose up --build`.
+Google sign-in requires the credentials in `.env`; the development login is available until then.
+
 ## Roadmap
 
 - Korean-first interface with an English option.

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="hero">
+    <p class="eyebrow">fill4you</p>
+    <h1>{{ t("app_tagline") }}</h1>
+    {% if user %}
+      <p>{{ t("signed_in_as") }}: {{ user.display_name }}</p>
+      <form method="post" action="/auth/logout"><button type="submit">{{ t("sign_out") }}</button></form>
+    {% else %}
+      {% if auth_error %}<p class="notice">{{ t("oauth_unavailable") }}</p>{% endif %}
+      <a class="button" href="/auth/google">{{ t("sign_in_google") }}</a>
+      {% if development_login_enabled %}
+        <form method="post" action="/auth/development"><button class="text-button" type="submit">{{ t("sign_in_dev") }}</button></form>
+      {% endif %}
+    {% endif %}
+  </section>
+{% endblock %}
