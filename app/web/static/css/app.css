@@ -8,12 +8,13 @@ body { margin: 0; }
 .hero { width: min(100% - 3rem, 42rem); margin: 10vh auto; }
 .eyebrow { color: #59667f; font-weight: 700; margin: 0; }
 h1 { margin: .45rem 0 1.5rem; font-size: clamp(2rem, 6vw, 4rem); letter-spacing: -.05em; }
+.hero h1 { font-size: clamp(1.75rem, 4.5vw, 3rem); }
 .button, button { display: inline-block; padding: .75rem 1rem; border: 0; border-radius: .5rem; background: #315efb; color: white; font: inherit; text-decoration: none; cursor: pointer; }
 form { display: inline; }
 .text-button { margin: 1rem 0 0 1rem; background: transparent; color: #315efb; }
 .notice { color: #9b3a25; }
 .dashboard { width: min(100% - 3rem, 76rem); margin: 3rem auto; }
-.dashboard-header, .preview-heading, .block-card, .source-tabs, .form-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+.dashboard-header, .preview-heading, .block-card, .source-tabs, .form-actions, .block-list-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .dashboard-header h1 { font-size: 2.5rem; margin: .25rem 0; }
 .dashboard-layout { display: grid; grid-template-columns: minmax(19rem, 25rem) 1fr; gap: 2rem; align-items: start; }
 .schedule-editor, .calendar-preview { background: white; border: 1px solid #e6e8ef; border-radius: .75rem; padding: 1rem; }
@@ -27,6 +28,8 @@ input, select { width: 100%; padding: .55rem; border: 1px solid #cfd5e2; border-
 fieldset { display: flex; gap: .8rem; border: 0; padding: 0; margin: 0; }
 fieldset label { display: flex; align-items: center; font-weight: 400; }
 fieldset input { width: auto; }
+.checkbox-label { display: flex; align-items: center; margin: .75rem 0; font-weight: 400; }
+.checkbox-label input { width: auto; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .7rem; }
 .secondary { background: #eef1f7; color: #24324a; }
 .danger { background: #b63d32; font-size: .8rem; padding: .4rem .55rem; }
@@ -35,7 +38,7 @@ fieldset input { width: auto; }
 .block-card strong, .block-card span { width: 100%; }
 .block-card span, .empty-state, .preview-heading span { color: #65718a; font-size: .85rem; }
 .block-card button { margin-right: .35rem; }
-.week-grid { display: grid; grid-template-columns: 3rem repeat(7, minmax(4rem, 1fr)); grid-template-rows: 2rem repeat(15, 1rem); position: relative; overflow: auto; min-height: 17rem; }
+.week-grid { display: grid; grid-template-columns: 3rem repeat(7, minmax(4rem, 1fr)); grid-template-rows: 2rem repeat(15, 4rem); position: relative; overflow: auto; min-height: 62rem; }
 .day-heading, .hour-label { color: #65718a; font-size: .75rem; text-align: center; }
 .hour-label { grid-column: 1; }
 .hour-cell { border-top: 1px solid #edf0f4; border-left: 1px solid #edf0f4; }
