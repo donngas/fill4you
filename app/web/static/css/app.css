@@ -19,6 +19,13 @@ form { display: inline; }
 .dashboard-layout { display: grid; grid-template-columns: minmax(19rem, 25rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
 .schedule-editor, .calendar-preview { min-width: 0; background: white; border: 1px solid #e6e8ef; border-radius: .75rem; padding: 1rem; }
 .source-tabs { align-items: stretch; justify-content: stretch; border-bottom: 1px solid #e6e8ef; }
+.bookmarklet-setup { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e6e8ef; }
+.bookmarklet-setup summary { cursor: pointer; font-weight: 700; }
+.bookmarklet-setup p { color: #65718a; font-size: .85rem; }
+.bookmarklet-link { display: inline-block; padding: .55rem .75rem; border-radius: .4rem; background: #315efb; color: white; font-weight: 700; text-decoration: none; }
+.token-list { display: grid; gap: .35rem; margin: .75rem 0 0; padding: 0; list-style: none; font-size: .85rem; }
+.token-list li { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.token-list em { color: #65718a; font-style: normal; }
 .source-tab { flex: 1; background: transparent; color: #59667f; border-radius: .4rem .4rem 0 0; padding: .6rem .25rem; font-size: .8rem; }
 .source-tab.is-active { color: #172033; background: #edf1ff; }
 .add-block-button { margin: 1rem 0; }

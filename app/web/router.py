@@ -7,6 +7,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.accounts.service import get_user
+from app.bookmarklet import service as bookmarklet_service
+from app.bookmarklet.router import bookmarklet_url
 from app.busy_blocks import service as busy_block_service
 from app.busy_blocks.models import BusyBlock
 from app.core.config import Settings, get_settings
@@ -78,6 +80,7 @@ def dashboard(
     if user is None:
         return RedirectResponse(url="/?next=/dashboard", status_code=303)
     blocks = busy_block_service.list_for_user(db, user.id)
+    new_bookmarklet_token = request.session.pop("new_bookmarklet_token", None)
     today = datetime.now(SEOUL).date()
     week_start = today - timedelta(days=today.weekday())
     return templates.TemplateResponse(
@@ -89,5 +92,11 @@ def dashboard(
             "blocks_json": [_block_for_client(block) for block in blocks],
             "week_start": week_start.isoformat(),
             "week_end": (week_start + timedelta(days=6)).isoformat(),
+            "bookmarklet_tokens": bookmarklet_service.list_tokens(db, user.id),
+            "bookmarklet_url": (
+                bookmarklet_url(str(request.base_url), new_bookmarklet_token)
+                if new_bookmarklet_token
+                else None
+            ),
         },
     )

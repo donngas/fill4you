@@ -9,6 +9,7 @@ Set `APP_PORT` if port 8000 is already in use.
 Replace the example PostgreSQL and session values before deployment.
 Configuration loads from `.env`; deployed process environment variables take precedence.
 Google sign-in requires the credentials in `.env`; the development login is available until then.
+For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2meet.com", "https://www.when2meet.com"]`.
 
 ## Roadmap
 
