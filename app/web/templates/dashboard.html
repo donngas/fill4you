@@ -22,6 +22,7 @@
         <button id="show-everytime-import" type="button" class="everytime-import-button">에브리타임 이미지 불러오기</button>
         <button id="show-block-form" type="button" class="add-block-button">수동으로 강의 추가</button>
       </div>
+      {% if block_form_error %}<p class="notice" role="alert">{{ block_form_error }}</p>{% endif %}
       <form id="everytime-import-form" class="everytime-import-form" method="post" action="/everytime/import" enctype="multipart/form-data" hidden>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>에브리타임 내보내기 이미지<input type="file" name="image" accept="image/jpeg,image/png" required></label>

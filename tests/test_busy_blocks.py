@@ -18,15 +18,28 @@ def _csrf_token(client: TestClient) -> str:
     return match.group(1)
 
 
-def test_rejects_invalid_recurring_interval() -> None:
-    with pytest.raises(ValidationError, match="End time must be after start time"):
+def test_allows_recurring_interval_that_ends_the_following_day() -> None:
+    block = BusyBlockInput(
+        source="timetable",
+        title="Sleep",
+        is_recurring=True,
+        weekday=0,
+        start_time=time(23, 30),
+        end_time=time(8, 30),
+    )
+
+    assert block.end_time == time(8, 30)
+
+
+def test_rejects_zero_length_recurring_interval() -> None:
+    with pytest.raises(ValidationError, match="cannot start and end at the same time"):
         BusyBlockInput(
             source="timetable",
             title="Algorithms",
             is_recurring=True,
             weekday=0,
             start_time=time(12),
-            end_time=time(10),
+            end_time=time(12),
         )
 
 
@@ -149,6 +162,58 @@ def test_creates_one_manual_block_per_selected_weekday(
         (0, "Study group", "manual"),
         (2, "Study group", "manual"),
     ]
+
+
+def test_invalid_recurring_block_returns_controlled_form_error(
+    client: TestClient, db_session: Session
+) -> None:
+    csrf_token = _csrf_token(client)
+    client.post("/auth/development", data={"csrf_token": csrf_token})
+
+    response = client.post(
+        "/blocks",
+        data={
+            "source": "manual",
+            "title": "Zero length",
+            "schedule_type": "recurring",
+            "weekdays": ["0"],
+            "start_time": "10:00",
+            "end_time": "10:00",
+            "csrf_token": csrf_token,
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    dashboard = client.get("/dashboard")
+    assert "반복 일정의 시작과 종료 시간은 같을 수 없습니다." in dashboard.text
+    assert db_session.query(BusyBlock).count() == 0
+
+
+def test_invalid_block_source_returns_controlled_form_error(
+    client: TestClient, db_session: Session
+) -> None:
+    csrf_token = _csrf_token(client)
+    client.post("/auth/development", data={"csrf_token": csrf_token})
+
+    response = client.post(
+        "/blocks",
+        data={
+            "source": "invalid",
+            "title": "Invalid source",
+            "schedule_type": "recurring",
+            "weekdays": ["0"],
+            "start_time": "10:00",
+            "end_time": "11:00",
+            "csrf_token": csrf_token,
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    dashboard = client.get("/dashboard")
+    assert "일정 출처를 확인해 주세요." in dashboard.text
+    assert db_session.query(BusyBlock).count() == 0
 
 
 def test_resets_only_the_current_users_timetable(client: TestClient, db_session: Session) -> None:

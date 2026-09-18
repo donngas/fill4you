@@ -39,6 +39,8 @@ def overlaps_busy_block(block: BusyBlock, slot: datetime, slot_minutes: int) -> 
                 )
                 + after
             )
+            if block.end_time < block.start_time:
+                busy_end += timedelta(days=1)
             if _overlaps(local_slot, local_slot_end, busy_start, busy_end):
                 return True
         return False

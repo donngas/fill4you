@@ -135,6 +135,7 @@ def dashboard(
             "google_calendars": google_calendar_service.list_calendars(db, user.id),
             "google_calendar_configured": settings.google_calendar_configured,
             "google_sync_message": request.session.pop("google_sync_message", None),
+            "block_form_error": request.session.pop("block_form_error", None),
             "csrf_token": get_csrf_token(request),
         },
     )

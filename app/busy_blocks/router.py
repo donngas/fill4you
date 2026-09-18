@@ -15,6 +15,10 @@ from app.shared.time import as_seoul_time
 router = APIRouter(prefix="/blocks", tags=["busy-blocks"])
 
 
+class BlockInputError(Exception):
+    pass
+
+
 def _current_user_id(request: Request, db: Session) -> int:
     user = get_user(db, request.session.get("user_id"))
     if user is None:
@@ -56,7 +60,21 @@ def _to_input(
             after_buffer_minutes=after_buffer_minutes,
         )
     except ValidationError as error:
-        raise HTTPException(status_code=422, detail=error.errors()) from error
+        message = error.errors()[0]["msg"].removeprefix("Value error, ")
+        messages = {
+            "A title is required": "일정 이름을 입력해 주세요.",
+            "A recurring block needs a weekday, start time, and end time": (
+                "반복 일정의 요일과 시작·종료 시간을 입력해 주세요."
+            ),
+            "A recurring block cannot start and end at the same time": (
+                "반복 일정의 시작과 종료 시간은 같을 수 없습니다."
+            ),
+            "A one-time block needs start and end datetimes": (
+                "일회성 일정의 시작·종료 시간을 입력해 주세요."
+            ),
+            "End time must be after start time": "종료 시간은 시작 시간보다 늦어야 합니다.",
+        }
+        raise BlockInputError(messages.get(message, "입력한 일정 정보를 확인해 주세요.")) from error
 
 
 @router.post("")
@@ -77,38 +95,40 @@ def create_block(
     _: None = Depends(require_csrf),
 ):
     user_id = _current_user_id(request, db)
+    if source not in {"timetable", "manual"}:
+        request.session["block_form_error"] = "일정 출처를 확인해 주세요."
+        return RedirectResponse(url="/dashboard", status_code=303)
     default_before, default_after = service.buffer_defaults(db, user_id)[source]
     effective_weekday = weekdays[0] if weekdays else weekday
-    data = _to_input(
-        source=source,
-        title=title,
-        schedule_type=schedule_type,
-        weekday=effective_weekday,
-        start_time=start_time,
-        end_time=end_time,
-        starts_at=starts_at,
-        ends_at=ends_at,
-        before_buffer_minutes=before_buffer_minutes
-        if before_buffer_minutes is not None
-        else default_before,
-        after_buffer_minutes=after_buffer_minutes
-        if after_buffer_minutes is not None
-        else default_after,
-        allow_google=False,
-    )
+    try:
+        data = _to_input(
+            source=source,
+            title=title,
+            schedule_type=schedule_type,
+            weekday=effective_weekday,
+            start_time=start_time,
+            end_time=end_time,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            before_buffer_minutes=before_buffer_minutes
+            if before_buffer_minutes is not None
+            else default_before,
+            after_buffer_minutes=after_buffer_minutes
+            if after_buffer_minutes is not None
+            else default_after,
+            allow_google=False,
+        )
+    except BlockInputError as error:
+        request.session["block_form_error"] = str(error)
+        return RedirectResponse(url="/dashboard", status_code=303)
     selected_weekdays = weekdays or [effective_weekday]
     if (
         schedule_type == "recurring"
         and source in {"timetable", "manual"}
         and len(selected_weekdays) > 1
     ):
-        try:
-            blocks = [
-                data.model_copy(update={"weekday": selected}) for selected in selected_weekdays
-            ]
-            service.create_many(db, user_id, blocks)
-        except ValidationError as error:
-            raise HTTPException(status_code=422, detail=error.errors()) from error
+        blocks = [data.model_copy(update={"weekday": selected}) for selected in selected_weekdays]
+        service.create_many(db, user_id, blocks)
     else:
         service.create(db, user_id, data)
     return RedirectResponse(url="/dashboard", status_code=303)
@@ -137,19 +157,23 @@ def update_block(
     if block is None:
         raise HTTPException(status_code=404, detail="Busy block not found")
     effective_weekday = weekdays[0] if weekdays else weekday
-    data = _to_input(
-        source=block.source,
-        title=title,
-        schedule_type=schedule_type,
-        weekday=effective_weekday,
-        start_time=start_time,
-        end_time=end_time,
-        starts_at=starts_at,
-        ends_at=ends_at,
-        before_buffer_minutes=before_buffer_minutes,
-        after_buffer_minutes=after_buffer_minutes,
-        allow_google=True,
-    )
+    try:
+        data = _to_input(
+            source=block.source,
+            title=title,
+            schedule_type=schedule_type,
+            weekday=effective_weekday,
+            start_time=start_time,
+            end_time=end_time,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            before_buffer_minutes=before_buffer_minutes,
+            after_buffer_minutes=after_buffer_minutes,
+            allow_google=True,
+        )
+    except BlockInputError as error:
+        request.session["block_form_error"] = str(error)
+        return RedirectResponse(url="/dashboard", status_code=303)
     selected_weekdays = weekdays or [effective_weekday]
     service.update(db, block, data, mark_locally_modified=block.source == "google_calendar")
     if (

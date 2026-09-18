@@ -145,7 +145,8 @@ function blockSegmentOnDate(block, date) {
       const blockDate = addDays(date, dayOffset);
       if (block.weekday !== (blockDate.getDay() + 6) % 7) continue;
       const actualStart = dayOffset * 24 * minutesPerHour + minutesFromTime(block.startTime);
-      const actualEnd = dayOffset * 24 * minutesPerHour + minutesFromTime(block.endTime);
+      let actualEnd = dayOffset * 24 * minutesPerHour + minutesFromTime(block.endTime);
+      if (actualEnd <= actualStart) actualEnd += 24 * minutesPerHour;
       const start = actualStart - before;
       const end = actualEnd + after;
       if (start < 24 * minutesPerHour && end > 0) return { start, end, actualStart, actualEnd };
@@ -210,8 +211,12 @@ function describeBlock(block, date, segment) {
   const dateText = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(date);
   const startsAt = segment.fullActualStart ?? segment.actualStart;
   const endsAt = segment.fullActualEnd ?? segment.actualEnd;
-  const starts = `${String(Math.floor(startsAt / 60)).padStart(2, "0")}:${String(startsAt % 60).padStart(2, "0")}`;
-  const ends = `${String(Math.floor(endsAt / 60)).padStart(2, "0")}:${String(endsAt % 60).padStart(2, "0")}`;
+  const formatTime = (minutes) => {
+    const normalized = ((minutes % (24 * minutesPerHour)) + (24 * minutesPerHour)) % (24 * minutesPerHour);
+    return `${String(Math.floor(normalized / 60)).padStart(2, "0")}:${String(normalized % 60).padStart(2, "0")}`;
+  };
+  const starts = formatTime(startsAt);
+  const ends = formatTime(endsAt);
   return `${block.title}, ${sourceLabel(block.source)}, ${dateText} ${starts}–${ends}, 버퍼 전 ${block.beforeBufferMinutes}분 후 ${block.afterBufferMinutes}분`;
 }
 

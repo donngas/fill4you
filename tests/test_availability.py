@@ -49,6 +49,27 @@ def test_desired_mask_excludes_any_slot_that_overlaps_busy_time() -> None:
     assert desired_mask([block], slots) == [False, False, False]
 
 
+def test_desired_mask_excludes_overnight_recurring_block() -> None:
+    block = BusyBlock(
+        user_id=1,
+        source="manual",
+        title="Sleep",
+        is_recurring=True,
+        weekday=0,
+        start_time=time(23, 30),
+        end_time=time(8, 30),
+        before_buffer_minutes=0,
+        after_buffer_minutes=0,
+    )
+    slots = [
+        datetime.fromisoformat("2026-09-21T23:30:00+09:00"),
+        datetime.fromisoformat("2026-09-22T08:15:00+09:00"),
+        datetime.fromisoformat("2026-09-22T08:30:00+09:00"),
+    ]
+
+    assert desired_mask([block], slots) == [False, False, True]
+
+
 def test_desired_mask_includes_before_and_after_buffers() -> None:
     block = BusyBlock(
         user_id=1,

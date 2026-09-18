@@ -27,8 +27,8 @@ class BusyBlockInput(BaseModel):
                 raise ValueError("A recurring block needs a weekday, start time, and end time")
             if not 0 <= self.weekday <= 6:
                 raise ValueError("Weekday must be between 0 and 6")
-            if self.end_time <= self.start_time:
-                raise ValueError("End time must be after start time")
+            if self.end_time == self.start_time:
+                raise ValueError("A recurring block cannot start and end at the same time")
         else:
             if self.starts_at is None or self.ends_at is None:
                 raise ValueError("A one-time block needs start and end datetimes")
