@@ -157,7 +157,9 @@ function blockSegmentOnDate(block, date) {
   const end = Math.round((bufferedEnd - dayStart) / 60000);
   const actualStart = Math.round((eventStart - dayStart) / 60000);
   const actualEnd = Math.round((eventEnd - dayStart) / 60000);
-  return start < end ? { start, end, actualStart, actualEnd } : null;
+  return start < 24 * minutesPerHour && end > 0
+    ? { start, end, actualStart, actualEnd }
+    : null;
 }
 
 function sourceLabel(source) {
