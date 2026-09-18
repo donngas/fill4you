@@ -78,6 +78,12 @@
         {% if bookmarklet_url %}
           <p class="bookmarklet-instruction">아래 버튼을 북마크바로 드래그하세요.</p>
           <a class="bookmarklet-link bookmarklet-ready" href="{{ bookmarklet_url }}">fill4you</a>
+          <p>또는 수동으로 북마크를 생성하고 링크 칸에 아래 텍스트를 붙여넣기 하세요.</p>
+          <div class="bookmarklet-copy-control">
+            <code id="bookmarklet-url" class="bookmarklet-url">{{ bookmarklet_url }}</code>
+            <button id="copy-bookmarklet-url" type="button" class="secondary">링크 복사</button>
+          </div>
+          <p id="bookmarklet-copy-status" class="bookmarklet-copy-status" role="status" aria-live="polite" hidden>복사됨!</p>
         {% else %}
           <p>현재 등록된 바쁜 시간을 when2meet에 반영할 전용 링크를 만듭니다.</p>
           <form method="post" action="/bookmarklet/tokens"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>이름<input name="label" maxlength="80" value="fill4you"></label><button type="submit">북마크릿 만들기</button></form>

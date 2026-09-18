@@ -48,9 +48,7 @@ def revoke_token(
 
 
 @router.get("/script.js")
-def bookmarklet_script(
-    request: Request, token: str, settings: Settings = Depends(get_settings)
-):
+def bookmarklet_script(request: Request, token: str, settings: Settings = Depends(get_settings)):
     # Cloudflare Tunnel reaches this service over its private HTTP network.
     # The request URL therefore cannot be used for browser-side requests.
     api_base = settings.public_base_url or str(request.base_url).rstrip("/")
@@ -62,7 +60,7 @@ def bookmarklet_script(
 
 def bookmarklet_url(api_base: str, raw_token: str) -> str:
     script_url = f"{api_base.rstrip('/')}/bookmarklet/script.js?{urlencode({'token': raw_token})}"
-    return f"javascript:(()=>{{const s=document.createElement('script');s.src={json.dumps(script_url)};document.body.appendChild(s)}})()"
+    return f"javascript:(()=>{{document.body.appendChild(Object.assign(document.createElement('script'),{{src:{json.dumps(script_url)}}}))}})()"
 
 
 def _script(api_base: str, token: str) -> str:
