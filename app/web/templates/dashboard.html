@@ -11,6 +11,19 @@
   </header>
   <div class="dashboard-layout">
     <aside class="schedule-editor">
+      <details class="bookmarklet-setup">
+        <summary>When2meet 북마크릿</summary>
+        {% if bookmarklet_url %}
+          <p>아래 버튼을 북마크바로 드래그하세요. 이 토큰은 지금만 다시 볼 수 있습니다.</p>
+          <a class="bookmarklet-link" href="{{ bookmarklet_url }}">⚡ fill4you</a>
+        {% else %}
+          <p>When2meet에서 사용할 전용 토큰을 만듭니다.</p>
+          <form method="post" action="/bookmarklet/tokens"><label>이름<input name="label" maxlength="80" value="When2meet bookmarklet"></label><button type="submit">북마크릿 만들기</button></form>
+        {% endif %}
+        {% if bookmarklet_tokens %}
+          <ul class="token-list">{% for token in bookmarklet_tokens %}<li><span>{{ token.label }}</span>{% if token.revoked_at %}<em>해지됨</em>{% else %}<form method="post" action="/bookmarklet/tokens/{{ token.id }}/revoke"><button class="text-button" type="submit">해지</button></form>{% endif %}</li>{% endfor %}</ul>
+        {% endif %}
+      </details>
       <div class="source-tabs">
         <button type="button" class="source-tab is-active" data-source="timetable">시간표</button>
         <button type="button" class="source-tab" data-source="manual">직접 추가</button>
