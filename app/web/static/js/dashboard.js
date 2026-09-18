@@ -12,6 +12,8 @@ const titles = { timetable: "시간표", manual: "일정", google_calendar: "구
 const grid = document.querySelector("#week-grid");
 const weekLabel = document.querySelector("#week-label");
 const calendarDescription = document.querySelector("#calendar-description");
+const bookmarkletDialog = document.querySelector("#bookmarklet-dialog");
+const bookmarkletDialogKey = "fill4you.bookmarklet-dialog";
 const hourHeight = 44;
 const minutesPerHour = 60;
 const firstHour = 0;
@@ -233,4 +235,16 @@ document.querySelectorAll("[data-confirm]").forEach((button) => button.addEventL
 document.querySelector("#previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); renderCalendar(); });
 document.querySelector("#next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); renderCalendar(); });
 document.querySelector("#current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); renderCalendar(); });
+document.querySelector("#open-bookmarklet-setup").addEventListener("click", () => bookmarkletDialog.showModal());
+document.querySelector("#close-bookmarklet-setup").addEventListener("click", () => bookmarkletDialog.close());
+bookmarkletDialog.addEventListener("click", (event) => { if (event.target === bookmarkletDialog) bookmarkletDialog.close(); });
+bookmarkletDialog.querySelectorAll('form[method="post"]').forEach((submittedForm) => submittedForm.addEventListener("submit", () => {
+  try { sessionStorage.setItem(bookmarkletDialogKey, "open"); } catch (_) { /* Setup still completes without browser storage. */ }
+}));
+try {
+  if (sessionStorage.getItem(bookmarkletDialogKey) === "open") {
+    sessionStorage.removeItem(bookmarkletDialogKey);
+    bookmarkletDialog.showModal();
+  }
+} catch (_) { /* The dialog remains available through its header action. */ }
 renderCalendar();

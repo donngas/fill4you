@@ -24,6 +24,7 @@ h2 { font-size: 16px; line-height: 1.4; }
 .notice { margin: 12px 0; color: #8e382c; font-size: 14px; line-height: 1.5; }
 .dashboard { width: min(100% - 40px, 1200px); margin: 32px auto 48px; }
 .dashboard-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.header-actions { display: flex; align-items: center; gap: 16px; flex: 0 0 auto; }
 .dashboard-header p, .editor-heading p, .preview-heading p, .calendar-description { margin: 8px 0 0; color: #65675f; font-size: 14px; line-height: 1.5; }
 .dashboard-layout { display: grid; grid-template-columns: minmax(300px, 370px) minmax(0, 1fr); gap: 24px; align-items: start; }
 .schedule-editor, .calendar-preview { min-width: 0; border: 1px solid #deddd8; border-radius: 8px; background: #fff; }
@@ -61,12 +62,15 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .block-actions button { min-height: 32px; padding: 6px 8px; font-size: 13px; }
 .calendar-selection { display: grid; gap: 10px; margin: 14px 0; }
 .calendar-selection fieldset { display: grid; gap: 8px; }
-.bookmarklet-setup { margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e4df; }
-.bookmarklet-setup summary { color: #292824; cursor: pointer; font-size: 14px; font-weight: 650; }
-.bookmarklet-setup p { margin: 10px 0; color: #65675f; font-size: 14px; line-height: 1.5; }
 .bookmarklet-link { display: inline-flex; min-height: 40px; align-items: center; padding: 9px 12px; border-radius: 6px; background: #3d4a43; color: #fff; font-size: 14px; font-weight: 650; text-decoration: none; }
 .token-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 14px; }
 .token-list em { color: #65675f; font-size: 13px; font-style: normal; }
+.bookmarklet-dialog { width: min(calc(100% - 32px), 480px); margin: auto; padding: 0; border: 1px solid #deddd8; border-radius: 8px; background: #fff; color: #292824; }
+.bookmarklet-dialog::backdrop { background: rgb(34 35 31 / .36); }
+.dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e5e4df; }
+.dialog-content { display: grid; gap: 14px; padding: 20px; }
+.dialog-content p { margin: 0; color: #65675f; font-size: 14px; line-height: 1.5; }
+.dialog-content form { display: grid; gap: 12px; }
 .preview-heading { align-items: flex-start; margin-bottom: 14px; }
 .calendar-navigation { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .calendar-navigation button { min-height: 36px; padding: 7px 9px; font-size: 13px; }
