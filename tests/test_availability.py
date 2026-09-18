@@ -7,7 +7,9 @@ from app.accounts.models import User
 from app.availability.service import desired_mask
 from app.bookmarklet import service as bookmarklet_service
 from app.busy_blocks.models import BusyBlock
+from app.core.config import Settings, get_settings
 from app.core.rate_limit import FixedWindowRateLimiter
+from app.main import app
 
 
 def test_desired_mask_excludes_busy_recurring_slots() -> None:
@@ -121,6 +123,17 @@ def test_bookmarklet_script_keeps_when2meet_adapter_isolated(client: TestClient)
     assert "fill4you-preview-busy" in response.text
     assert "fill4you-busy-label" in response.text
     assert "fill4you-preview-panel" in response.text
+
+
+def test_bookmarklet_script_uses_configured_public_base_url(client: TestClient) -> None:
+    app.dependency_overrides[get_settings] = lambda: Settings(
+        public_base_url="https://fill4you.example"
+    )
+
+    response = client.get("/bookmarklet/script.js?token=test-token")
+
+    assert response.status_code == 200
+    assert 'const API_BASE = "https://fill4you.example"' in response.text
 
 
 def test_availability_rate_limiter_allows_normal_retries_then_throttles() -> None:

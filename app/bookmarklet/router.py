@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.service import get_user
 from app.bookmarklet import service
+from app.core.config import Settings, get_settings
 from app.core.csrf import require_csrf
 from app.core.database import get_db
 
@@ -47,8 +48,12 @@ def revoke_token(
 
 
 @router.get("/script.js")
-def bookmarklet_script(request: Request, token: str):
-    api_base = str(request.base_url).rstrip("/")
+def bookmarklet_script(
+    request: Request, token: str, settings: Settings = Depends(get_settings)
+):
+    # Cloudflare Tunnel reaches this service over its private HTTP network.
+    # The request URL therefore cannot be used for browser-side requests.
+    api_base = settings.public_base_url or str(request.base_url).rstrip("/")
     script = _script(api_base, token)
     return PlainTextResponse(
         script, media_type="application/javascript", headers={"Cache-Control": "no-store"}
