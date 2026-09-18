@@ -53,7 +53,7 @@
     </aside>
 
     <section class="calendar-preview">
-      <div class="preview-heading"><div><h2>등록된 일정</h2><p id="week-label" aria-live="polite"></p></div><div class="calendar-navigation"><button id="previous-week" type="button" class="secondary">이전 주</button><button id="current-week" type="button" class="secondary">이번 주</button><button id="next-week" type="button" class="secondary">다음 주</button></div></div>
+      <div class="preview-heading"><div><h2>등록된 일정</h2><p id="week-label" aria-live="polite"></p></div><div class="calendar-controls"><div class="time-range-control"><label>시작<select id="calendar-start-hour">{% for hour in range(0, 23) %}<option value="{{ hour }}" {% if hour == 6 %}selected{% endif %}>{{ "%02d:00" | format(hour) }}</option>{% endfor %}</select></label><label>끝<select id="calendar-end-hour">{% for hour in range(1, 25) %}<option value="{{ hour }}" {% if hour == 23 %}selected{% endif %}>{{ "%02d:00" | format(hour) }}</option>{% endfor %}</select></label></div><div class="calendar-navigation"><button id="previous-week" type="button" class="secondary">이전 주</button><button id="current-week" type="button" class="secondary">이번 주</button><button id="next-week" type="button" class="secondary">다음 주</button></div></div></div>
       <p id="calendar-description" class="calendar-description" aria-live="polite">등록된 일정 블록을 선택하면 상세 정보를 확인할 수 있습니다.</p>
       <div id="calendar-scroll" class="calendar-scroll"><div id="week-grid" class="week-grid" role="grid" aria-label="등록된 일정 주간 보기"></div></div>
     </section>

@@ -12,13 +12,15 @@ const titles = { timetable: "시간표", manual: "일정", google_calendar: "구
 const grid = document.querySelector("#week-grid");
 const weekLabel = document.querySelector("#week-label");
 const googleWeekLabel = document.querySelector("#google-week-label");
+const calendarStartHourInput = document.querySelector("#calendar-start-hour");
+const calendarEndHourInput = document.querySelector("#calendar-end-hour");
 const calendarDescription = document.querySelector("#calendar-description");
 const bookmarkletDialog = document.querySelector("#bookmarklet-dialog");
 const bookmarkletDialogKey = "fill4you.bookmarklet-dialog";
 const hourHeight = 44;
 const minutesPerHour = 60;
-const firstHour = 0;
-const lastHour = 24;
+let firstHour = Number(calendarStartHourInput.value);
+let lastHour = Number(calendarEndHourInput.value);
 let currentWeekStart = parseDate(dashboard.dataset.weekStart);
 let highlightedBlockTimer;
 
@@ -152,8 +154,10 @@ function layoutSegments(segments) {
 
 function describeBlock(block, date, segment) {
   const dateText = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(date);
-  const starts = `${String(Math.floor(segment.start / 60)).padStart(2, "0")}:${String(segment.start % 60).padStart(2, "0")}`;
-  const ends = `${String(Math.floor(segment.end / 60)).padStart(2, "0")}:${String(segment.end % 60).padStart(2, "0")}`;
+  const startsAt = segment.fullStart ?? segment.start;
+  const endsAt = segment.fullEnd ?? segment.end;
+  const starts = `${String(Math.floor(startsAt / 60)).padStart(2, "0")}:${String(startsAt % 60).padStart(2, "0")}`;
+  const ends = `${String(Math.floor(endsAt / 60)).padStart(2, "0")}:${String(endsAt % 60).padStart(2, "0")}`;
   return `${block.title}, ${sourceLabel(block.source)}, ${dateText} ${starts}–${ends}`;
 }
 
@@ -166,7 +170,7 @@ function renderBlock(segment, dayIndex) {
   item.setAttribute("aria-label", describeBlock(block, date, segment));
   item.style.left = `calc(4rem + ${dayIndex} * ((100% - 4rem) / 7) + ${column} * ((100% - 4rem) / 7 / ${columns}) + 3px)`;
   item.style.width = `calc((100% - 4rem) / 7 / ${columns} - 6px)`;
-  item.style.top = `calc(44px + ${start * (hourHeight / minutesPerHour)}px + 2px)`;
+  item.style.top = `calc(44px + ${(start - firstHour * minutesPerHour) * (hourHeight / minutesPerHour)}px + 2px)`;
   item.style.height = `${Math.max((end - start) * (hourHeight / minutesPerHour) - 4, 24)}px`;
   item.addEventListener("click", () => {
     calendarDescription.textContent = describeBlock(block, date, segment);
@@ -196,7 +200,10 @@ function renderCalendar() {
   dates.forEach((date, index) => {
     const segments = blocks.map((block) => {
       const interval = blockSegmentOnDate(block, date);
-      return interval ? { block, date, ...interval } : null;
+      if (!interval) return null;
+      const start = Math.max(interval.start, firstHour * minutesPerHour);
+      const end = Math.min(interval.end, lastHour * minutesPerHour);
+      return start < end ? { block, date, start, end, fullStart: interval.start, fullEnd: interval.end } : null;
     }).filter(Boolean);
     layoutSegments(segments).forEach((segment) => renderBlock(segment, index));
   });
@@ -256,6 +263,24 @@ document.querySelectorAll("[data-confirm]").forEach((button) => button.addEventL
 document.querySelector("#previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); updateWeek(); });
 document.querySelector("#next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); updateWeek(); });
 document.querySelector("#current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); updateWeek(); });
+function updateCalendarHours(changedInput) {
+  let selectedStart = Number(calendarStartHourInput.value);
+  let selectedEnd = Number(calendarEndHourInput.value);
+  if (selectedStart >= selectedEnd) {
+    if (changedInput === calendarStartHourInput) {
+      selectedEnd = selectedStart + 1;
+      calendarEndHourInput.value = String(selectedEnd);
+    } else {
+      selectedStart = selectedEnd - 1;
+      calendarStartHourInput.value = String(selectedStart);
+    }
+  }
+  firstHour = selectedStart;
+  lastHour = selectedEnd;
+  renderCalendar();
+}
+calendarStartHourInput.addEventListener("change", () => updateCalendarHours(calendarStartHourInput));
+calendarEndHourInput.addEventListener("change", () => updateCalendarHours(calendarEndHourInput));
 document.querySelector("#google-previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); updateWeek(); });
 document.querySelector("#google-next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); updateWeek(); });
 document.querySelector("#google-current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); updateWeek(); });

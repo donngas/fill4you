@@ -75,6 +75,10 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .dialog-content p { margin: 0; color: #65675f; font-size: 14px; line-height: 1.5; }
 .dialog-content form { display: grid; gap: 12px; }
 .preview-heading { align-items: flex-start; margin-bottom: 14px; }
+.calendar-controls { display: flex; flex-wrap: wrap; align-items: end; justify-content: flex-end; gap: 10px; }
+.time-range-control { display: flex; gap: 6px; }
+.time-range-control label { gap: 4px; color: #65675f; font-size: 12px; font-weight: 600; }
+.time-range-control select { min-height: 36px; padding: 6px 24px 6px 8px; font-size: 13px; }
 .calendar-navigation { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .calendar-navigation button { min-height: 36px; padding: 7px 9px; font-size: 13px; }
 .calendar-description { min-height: 21px; margin: 0 0 12px; }
@@ -88,5 +92,5 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .preview-block:hover { background: #dbe8df; }
 .source-manual { border-color: #c7aa78; background: #f7efd9; color: #624617; }
 .source-google_calendar { border-color: #b5a5b8; background: #f0eaf0; color: #563e5b; }
-@media (max-width: 800px) { .dashboard { width: min(100% - 24px, 1200px); margin-top: 24px; }.dashboard-layout { grid-template-columns: 1fr; }.dashboard-header { gap: 16px; }.calendar-preview, .schedule-editor { padding: 16px; }.preview-heading { display: grid; }.calendar-navigation { justify-content: flex-start; }.week-grid { min-width: 680px; } }
+@media (max-width: 800px) { .dashboard { width: min(100% - 24px, 1200px); margin-top: 24px; }.dashboard-layout { grid-template-columns: 1fr; }.dashboard-header { gap: 16px; }.calendar-preview, .schedule-editor { padding: 16px; }.preview-heading { display: grid; }.calendar-controls, .calendar-navigation { justify-content: flex-start; }.week-grid { min-width: 680px; } }
 @media (max-width: 460px) { .dashboard-header { display: grid; }.dashboard-header form { justify-self: start; }.field-row { grid-template-columns: 1fr; }.block-card { display: grid; }.block-actions { justify-content: flex-start; }.source-tab { font-size: 12px; }.calendar-navigation button { flex: 1; } }
