@@ -1,5 +1,6 @@
 from urllib.parse import urlencode
 
+from authlib.integrations.base_client.errors import OAuthError
 from authlib.integrations.starlette_client import OAuth
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.service import get_or_create_development_user, upsert_google_user
 from app.core.config import Settings, get_settings
+from app.core.csrf import require_csrf
 from app.core.database import get_db
 from app.google_calendar import service as google_calendar_service
 
@@ -50,8 +52,12 @@ async def google_callback(
     google = _google_client(settings)
     if google is None:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured")
-    token = await google.authorize_access_token(request)
-    user_info = token.get("userinfo") or await google.userinfo(token=token)
+    try:
+        token = await google.authorize_access_token(request)
+        user_info = token.get("userinfo") or await google.userinfo(token=token)
+    except OAuthError:
+        url = "/?" + urlencode({"auth_error": "google_failed"})
+        return RedirectResponse(url=url, status_code=303)
     user = upsert_google_user(
         db,
         subject=user_info["sub"],
@@ -70,6 +76,7 @@ def development_login(
     request: Request,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
+    _: None = Depends(require_csrf),
 ):
     if not settings.development_login_enabled:
         raise HTTPException(status_code=404)
@@ -79,6 +86,6 @@ def development_login(
 
 
 @router.post("/logout")
-def logout(request: Request):
+def logout(request: Request, _: None = Depends(require_csrf)):
     request.session.clear()
     return RedirectResponse(url="/", status_code=303)

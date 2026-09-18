@@ -7,7 +7,7 @@
       <h1>내 일정</h1>
       <p>모든 시간은 Asia/Seoul 기준입니다.</p>
     </div>
-    <form method="post" action="/auth/logout"><button class="text-button" type="submit">로그아웃</button></form>
+    <form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">로그아웃</button></form>
   </header>
   <div class="dashboard-layout">
     <aside class="schedule-editor">
@@ -18,10 +18,10 @@
           <a class="bookmarklet-link" href="{{ bookmarklet_url }}">⚡ fill4you</a>
         {% else %}
           <p>When2meet에서 사용할 전용 토큰을 만듭니다.</p>
-          <form method="post" action="/bookmarklet/tokens"><label>이름<input name="label" maxlength="80" value="When2meet bookmarklet"></label><button type="submit">북마크릿 만들기</button></form>
+          <form method="post" action="/bookmarklet/tokens"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>이름<input name="label" maxlength="80" value="When2meet bookmarklet"></label><button type="submit">북마크릿 만들기</button></form>
         {% endif %}
         {% if bookmarklet_tokens %}
-          <ul class="token-list">{% for token in bookmarklet_tokens %}<li><span>{{ token.label }}</span>{% if token.revoked_at %}<em>해지됨</em>{% else %}<form method="post" action="/bookmarklet/tokens/{{ token.id }}/revoke"><button class="text-button" type="submit">해지</button></form>{% endif %}</li>{% endfor %}</ul>
+          <ul class="token-list">{% for token in bookmarklet_tokens %}<li><span>{{ token.label }}</span>{% if token.revoked_at %}<em>해지됨</em>{% else %}<form method="post" action="/bookmarklet/tokens/{{ token.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">해지</button></form>{% endif %}</li>{% endfor %}</ul>
         {% endif %}
       </details>
       <div class="source-tabs">
@@ -32,6 +32,7 @@
       <button id="show-block-form" type="button" class="add-block-button">시간표 추가</button>
       <form id="block-form" class="block-form" method="post" action="/blocks" hidden>
         <input id="source-input" type="hidden" name="source" value="timetable">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <h2 id="form-heading">시간표 추가</h2>
         <label>이름<input id="title-input" name="title" required maxlength="255" placeholder="예: 알고리즘"></label>
         <fieldset><legend>일정 종류</legend><label><input type="radio" name="schedule_type" value="recurring" checked> 매주 반복</label><label><input type="radio" name="schedule_type" value="one_time"> 한 번만</label></fieldset>
@@ -42,12 +43,13 @@
       <div class="block-lists">
         {% for source, label in [("timetable", "시간표"), ("manual", "직접 추가"), ("google_calendar", "Google Calendar")] %}
           <section class="block-list" data-source-list="{{ source }}" {% if source != "timetable" %}hidden{% endif %}>
-            <div class="block-list-heading"><h2>{{ label }}</h2>{% if source == "google_calendar" %}<form method="post" action="/google-calendar/sync"><label class="checkbox-label"><input type="checkbox" name="overwrite_local_changes"> 로컬 변경사항 덮어쓰기</label><button type="submit" class="secondary" {% if not google_calendar_configured or not google_calendar_connected %}disabled{% endif %}>새로고침</button></form>{% endif %}</div>
+            <div class="block-list-heading"><h2>{{ label }}</h2>{% if source == "google_calendar" %}<form method="post" action="/google-calendar/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label class="checkbox-label"><input type="checkbox" name="overwrite_local_changes"> 로컬 변경사항 덮어쓰기</label><button type="submit" class="secondary" {% if not google_calendar_configured or not google_calendar_connected %}disabled{% endif %}>새로고침</button></form>{% endif %}</div>
             {% if source == "google_calendar" and google_sync_message %}<p class="notice">{{ google_sync_message }}</p>{% elif source == "google_calendar" and not google_calendar_configured %}<p class="empty-state">Google Calendar 동기화 암호화 키를 설정한 뒤 다시 로그인하세요.</p>{% elif source == "google_calendar" and not google_calendar_connected %}<p class="empty-state">Google Calendar 연결을 위해 로그아웃한 뒤 Google로 다시 로그인하세요.</p>{% endif %}
+            {% if source == "google_calendar" and google_calendars %}<form method="post" action="/google-calendar/calendars" class="calendar-selection"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><fieldset><legend>동기화할 캘린더</legend>{% for calendar in google_calendars %}<label class="checkbox-label"><input type="checkbox" name="calendar_ids" value="{{ calendar.external_calendar_id }}" {% if calendar.is_selected %}checked{% endif %}> {{ calendar.title }}{% if calendar.is_primary %} (기본){% endif %}</label>{% endfor %}</fieldset><button type="submit" class="secondary">선택 저장</button></form>{% endif %}
             {% set source_blocks = blocks | selectattr("source", "equalto", source) | list %}
             {% if source_blocks %}
               {% for block in source_blocks %}
-                <article class="block-card"><strong>{{ block.title }}</strong><span>{% if block.is_recurring %}{{ ["월", "화", "수", "목", "금", "토", "일"][block.weekday] }} · {{ block.start_time.strftime("%H:%M") }}–{{ block.end_time.strftime("%H:%M") }}{% else %}{{ block.starts_at.strftime("%Y-%m-%d %H:%M") }}–{{ block.ends_at.strftime("%H:%M") }}{% endif %}</span><div><button type="button" class="edit-block secondary" data-block-id="{{ block.id }}">수정</button><form method="post" action="/blocks/{{ block.id }}/delete"><button type="submit" class="danger">삭제</button></form></div></article>
+                <article class="block-card"><strong>{{ block.title }}</strong><span>{% if block.is_recurring %}{{ ["월", "화", "수", "목", "금", "토", "일"][block.weekday] }} · {{ block.start_time.strftime("%H:%M") }}–{{ block.end_time.strftime("%H:%M") }}{% else %}{{ block.starts_at.strftime("%Y-%m-%d %H:%M") }}–{{ block.ends_at.strftime("%H:%M") }}{% endif %}</span><div><button type="button" class="edit-block secondary" data-block-id="{{ block.id }}">수정</button><form method="post" action="/blocks/{{ block.id }}/delete"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="danger">삭제</button></form></div></article>
               {% endfor %}
             {% elif source != "google_calendar" %}<p class="empty-state">아직 일정이 없습니다.</p>{% endif %}
           </section>
