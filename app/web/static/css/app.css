@@ -38,10 +38,13 @@ fieldset input { width: auto; }
 .block-card strong, .block-card span { width: 100%; }
 .block-card span, .empty-state, .preview-heading span { color: #65718a; font-size: .85rem; }
 .block-card button { margin-right: .35rem; }
-.week-grid { display: grid; grid-template-columns: 3rem repeat(7, minmax(4rem, 1fr)); grid-template-rows: 2rem repeat(15, 4rem); position: relative; overflow: auto; min-height: 62rem; }
+.calendar-scroll { overflow-x: auto; border: 1px solid #edf0f4; border-radius: .5rem; }
+.calendar-canvas { display: flex; width: max-content; min-height: 100%; }
+.week-grid { display: grid; position: relative; width: max-content; }
 .day-heading, .hour-label { color: #65718a; font-size: .75rem; text-align: center; }
-.hour-label { grid-column: 1; }
-.hour-cell { border-top: 1px solid #edf0f4; border-left: 1px solid #edf0f4; }
-.preview-block { z-index: 1; margin: 0 .2rem; padding: .2rem; overflow: hidden; border-radius: .25rem; background: #cddaff; color: #152664; font-size: .7rem; }
+.hour-label { grid-column: 1; padding-top: .35rem; }
+.hour-cell { height: 56px; border-top: 1px solid #edf0f4; border-left: 1px solid #edf0f4; }
+.preview-block { position: absolute; z-index: 1; width: calc(8rem - .5rem); padding: .25rem; overflow: hidden; border-radius: .25rem; background: #cddaff; color: #152664; font-size: .7rem; }
 .source-manual { background: #d8f1df; color: #185c2a; }.source-google_calendar { background: #fce2bd; color: #7c4200; }
+.load-more-panel { display: grid; place-items: start center; width: 10rem; padding: .75rem; border-left: 1px solid #edf0f4; }
 @media (max-width: 48rem) { .dashboard-layout { grid-template-columns: 1fr; }.dashboard { width: min(100% - 2rem, 76rem); } }
