@@ -34,8 +34,7 @@ def upsert_google_user(
     return user
 
 
-def get_or_create_development_user(db: Session) -> User:
-    email = "developer@fill4you.local"
+def get_or_create_development_user(db: Session, email: str) -> User:
     user = db.scalar(select(User).where(User.email == email))
     if user is None:
         user = User(

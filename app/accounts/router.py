@@ -22,7 +22,9 @@ def _google_client(settings: Settings):
             client_id=settings.google_client_id,
             client_secret=settings.google_client_secret,
             server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-            client_kwargs={"scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly"},
+            client_kwargs={
+                "scope": "openid email profile https://www.googleapis.com/auth/calendar.readonly"
+            },
         )
     return oauth.create_client("google")
 
@@ -66,7 +68,7 @@ def development_login(
 ):
     if not settings.development_login_enabled:
         raise HTTPException(status_code=404)
-    user = get_or_create_development_user(db)
+    user = get_or_create_development_user(db, settings.development_user_email)
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=303)
 
