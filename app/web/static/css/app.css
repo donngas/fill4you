@@ -78,9 +78,20 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .google-calendar-navigation { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px; }
 .google-calendar-navigation button { min-height: 36px; padding: 7px 9px; font-size: 13px; }
 .week-context { margin: 0 0 8px; color: #65675f; font-size: 13px; line-height: 1.45; }
-.bookmarklet-link { display: inline-flex; min-height: 40px; align-items: center; padding: 9px 12px; border-radius: 6px; background: #3d4a43; color: #fff; font-size: 14px; font-weight: 650; text-decoration: none; }
+.bookmarklet-instruction { color: #3c403b !important; font-size: 15px !important; font-weight: 650; }
+.bookmarklet-link { display: inline-flex; min-height: 40px; align-items: center; padding: 9px 12px; border-radius: 6px; font-size: 14px; font-weight: 650; text-decoration: none; }
+.bookmarklet-ready { border: 1px dashed #58705e; background: #e7efe9; color: #243b2c; }
+.bookmarklet-ready:hover { background: #dbe8df; }
 .token-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 14px; }
 .token-list em { color: #65675f; font-size: 13px; font-style: normal; }
+.bookmarklet-token-section { margin-top: 4px; }
+.bookmarklet-token-section h3 { margin: 0; font-size: 14px; }
+.bookmarklet-history { margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e4df; }
+.bookmarklet-history summary { cursor: pointer; color: #3c403b; font-size: 14px; font-weight: 650; }
+.bookmarklet-token { flex-wrap: wrap; }
+.bookmarklet-token > span { margin-right: auto; }
+.token-info { flex-basis: 100%; margin: 0; color: #65675f; font-size: 13px; line-height: 1.45; }
+.bookmarklet-token.is-recently-revoked { color: #65675f; }
 .bookmarklet-dialog { width: min(calc(100% - 32px), 480px); margin: auto; padding: 0; border: 1px solid #deddd8; border-radius: 8px; background: #fff; color: #292824; }
 .bookmarklet-dialog::backdrop { background: rgb(34 35 31 / .36); }
 .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e5e4df; }

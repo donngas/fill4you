@@ -25,7 +25,7 @@ def _user_id(request: Request, db: Session) -> int:
 @router.post("/tokens")
 def create_token(
     request: Request,
-    label: str = Form("When2meet bookmarklet"),
+    label: str = Form("fill4you"),
     db: Session = Depends(get_db),
     _: None = Depends(require_csrf),
 ):

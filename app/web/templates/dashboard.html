@@ -6,7 +6,7 @@
       <h1>내 일정</h1>
       <p>등록된 바쁜 시간을 확인하고 관리합니다. 모든 시간은 한국 표준시(Asia/Seoul) 기준입니다.</p>
     </div>
-    <div class="header-actions"><button id="open-bookmarklet-setup" type="button" class="secondary">When2meet에서 사용하기</button><form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">로그아웃</button></form></div>
+    <div class="header-actions"><button id="open-bookmarklet-setup" type="button" class="secondary">when2meet에서 사용하기</button><form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">로그아웃</button></form></div>
   </header>
 
   <div class="dashboard-layout">
@@ -64,18 +64,19 @@
   </div>
 
   <dialog id="bookmarklet-dialog" class="bookmarklet-dialog" aria-labelledby="bookmarklet-dialog-title">
-    <div class="dialog-heading"><h2 id="bookmarklet-dialog-title">When2meet에서 사용하기</h2><button id="close-bookmarklet-setup" type="button" class="text-button">닫기</button></div>
+    <div class="dialog-heading"><h2 id="bookmarklet-dialog-title">when2meet에서 사용하기</h2><button id="close-bookmarklet-setup" type="button" class="text-button">닫기</button></div>
     <div class="dialog-content">
         {% if bookmarklet_url %}
-          <p>아래 링크를 북마크 바로 드래그하세요. 이 링크는 지금만 다시 볼 수 있습니다.</p>
-          <a class="bookmarklet-link" href="{{ bookmarklet_url }}">fill4you 북마크릿</a>
+          <p class="bookmarklet-instruction">아래 버튼을 북마크 바로 직접 드래그하세요. 이 버튼은 지금만 다시 만들 수 있습니다.</p>
+          <a class="bookmarklet-link bookmarklet-ready" href="{{ bookmarklet_url }}">fill4you</a>
         {% else %}
-          <p>현재 등록된 바쁜 시간을 When2meet에 반영할 전용 링크를 만듭니다.</p>
-          <form method="post" action="/bookmarklet/tokens"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>이름<input name="label" maxlength="80" value="When2meet bookmarklet"></label><button type="submit">북마크릿 만들기</button></form>
+          <p>현재 등록된 바쁜 시간을 when2meet에 반영할 전용 링크를 만듭니다.</p>
+          <form method="post" action="/bookmarklet/tokens"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>이름<input name="label" maxlength="80" value="fill4you"></label><button type="submit">북마크릿 만들기</button></form>
         {% endif %}
-        {% if bookmarklet_tokens %}
-          <ul class="token-list">{% for token in bookmarklet_tokens %}<li><span>{{ token.label }}</span>{% if token.revoked_at %}<em>해지됨</em>{% else %}<form method="post" action="/bookmarklet/tokens/{{ token.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">해지</button></form>{% endif %}</li>{% endfor %}</ul>
-        {% endif %}
+        {% set active_tokens = bookmarklet_tokens | rejectattr("revoked_at") | list %}
+        {% set revoked_tokens = bookmarklet_tokens | selectattr("revoked_at") | list %}
+        <section id="active-bookmarklet-section" class="bookmarklet-token-section" {% if not active_tokens %}hidden{% endif %}><h3>사용 중인 북마크릿</h3><ul id="active-bookmarklet-tokens" class="token-list">{% for token in active_tokens %}<li class="bookmarklet-token" data-token-id="{{ token.id }}"><span>{{ token.label }}</span><form method="post" action="/bookmarklet/tokens/{{ token.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit" data-revoke-token-id="{{ token.id }}">해지</button></form></li>{% endfor %}</ul></section>
+        {% if revoked_tokens %}<details id="revoked-bookmarklets" class="bookmarklet-history"><summary>해지한 북마크릿 ({{ revoked_tokens | length }})</summary><ul id="revoked-bookmarklet-tokens" class="token-list">{% for token in revoked_tokens %}<li class="bookmarklet-token" data-token-id="{{ token.id }}"><span>{{ token.label }}</span><button type="button" class="text-button token-info-toggle" aria-expanded="false" aria-controls="token-info-{{ token.id }}">정보</button><p id="token-info-{{ token.id }}" class="token-info" hidden>생성 {{ token.created_at }} · 해지 {{ token.revoked_at }}</p></li>{% endfor %}</ul></details>{% endif %}
     </div>
   </dialog>
 </section>

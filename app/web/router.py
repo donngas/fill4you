@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.service import get_user
 from app.bookmarklet import service as bookmarklet_service
+from app.bookmarklet.models import BookmarkletToken
 from app.bookmarklet.router import bookmarklet_url
 from app.busy_blocks import service as busy_block_service
 from app.busy_blocks.models import BusyBlock
@@ -76,6 +77,17 @@ def _block_for_client(block: BusyBlock) -> dict[str, str | int | bool | None]:
     }
 
 
+def _bookmarklet_token_for_client(token: BookmarkletToken) -> dict[str, str | int | None]:
+    created_at = as_seoul_time(token.created_at)
+    revoked_at = as_seoul_time(token.revoked_at) if token.revoked_at else None
+    return {
+        "id": token.id,
+        "label": token.label,
+        "created_at": created_at.strftime("%Y-%m-%d %H:%M KST"),
+        "revoked_at": revoked_at.strftime("%Y-%m-%d %H:%M KST") if revoked_at else None,
+    }
+
+
 @router.get("/dashboard")
 def dashboard(
     request: Request,
@@ -99,7 +111,10 @@ def dashboard(
             "buffer_defaults": busy_block_service.buffer_defaults(db, user.id),
             "week_start": week_start.isoformat(),
             "week_end": (week_start + timedelta(days=6)).isoformat(),
-            "bookmarklet_tokens": bookmarklet_service.list_tokens(db, user.id),
+            "bookmarklet_tokens": [
+                _bookmarklet_token_for_client(token)
+                for token in bookmarklet_service.list_tokens(db, user.id)
+            ],
             "bookmarklet_url": (
                 bookmarklet_url(str(request.base_url), new_bookmarklet_token)
                 if new_bookmarklet_token

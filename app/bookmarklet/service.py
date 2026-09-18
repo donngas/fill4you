@@ -16,7 +16,7 @@ def create_token(db: Session, user_id: int, label: str) -> tuple[BookmarkletToke
     raw_token = secrets.token_urlsafe(32)
     token = BookmarkletToken(
         user_id=user_id,
-        label=label.strip() or "When2meet bookmarklet",
+        label=label.strip() or "fill4you",
         token_digest=_digest(raw_token),
     )
     db.add(token)

@@ -19,6 +19,7 @@ const calendarScroll = document.querySelector("#calendar-scroll");
 const calendarDescription = document.querySelector("#calendar-description");
 const bookmarkletDialog = document.querySelector("#bookmarklet-dialog");
 const bookmarkletDialogKey = "fill4you.bookmarklet-dialog";
+const recentlyRevokedBookmarkletKey = "fill4you.recently-revoked-bookmarklet";
 const dashboardStateKey = "fill4you.dashboard-state";
 const hourHeight = 44;
 const minutesPerHour = 60;
@@ -363,12 +364,56 @@ bookmarkletDialog.addEventListener("click", (event) => { if (event.target === bo
 bookmarkletDialog.querySelectorAll('form[method="post"]').forEach((submittedForm) => submittedForm.addEventListener("submit", () => {
   try { sessionStorage.setItem(bookmarkletDialogKey, "open"); } catch (_) { /* Setup still completes without browser storage. */ }
 }));
+bookmarkletDialog.querySelectorAll("[data-revoke-token-id]").forEach((button) => button.addEventListener("click", () => {
+  try {
+    const storedTokens = JSON.parse(sessionStorage.getItem(recentlyRevokedBookmarkletKey) || "[]");
+    const tokenIds = Array.isArray(storedTokens) ? storedTokens : [storedTokens];
+    if (!tokenIds.includes(button.dataset.revokeTokenId)) tokenIds.push(button.dataset.revokeTokenId);
+    sessionStorage.setItem(recentlyRevokedBookmarkletKey, JSON.stringify(tokenIds));
+  } catch (_) { /* The token is still revoked without browser storage. */ }
+}));
+let recentlyRevokedBookmarklets = [];
 try {
   if (sessionStorage.getItem(bookmarkletDialogKey) === "open") {
     sessionStorage.removeItem(bookmarkletDialogKey);
     bookmarkletDialog.showModal();
   }
+  const storedTokens = JSON.parse(sessionStorage.getItem(recentlyRevokedBookmarkletKey) || "[]");
+  recentlyRevokedBookmarklets = Array.isArray(storedTokens) ? storedTokens : [storedTokens];
 } catch (_) { /* The dialog remains available through its header action. */ }
+if (recentlyRevokedBookmarklets.length) {
+  const activeTokens = document.querySelector("#active-bookmarklet-tokens");
+  recentlyRevokedBookmarklets.forEach((tokenId) => {
+    const token = document.querySelector(`#revoked-bookmarklet-tokens [data-token-id="${tokenId}"]`);
+    if (!token || !activeTokens) return;
+    token.classList.add("is-recently-revoked");
+    activeTokens.append(token);
+  });
+  [...activeTokens.children]
+    .sort((first, second) => Number(second.dataset.tokenId) - Number(first.dataset.tokenId))
+    .forEach((token) => activeTokens.append(token));
+  document.querySelector("#active-bookmarklet-section").hidden = !activeTokens.children.length;
+}
+bookmarkletDialog.addEventListener("close", () => {
+  if (!recentlyRevokedBookmarklets.length) return;
+  const history = document.querySelector("#revoked-bookmarklet-tokens");
+  recentlyRevokedBookmarklets.forEach((tokenId) => {
+    const token = document.querySelector(`#active-bookmarklet-tokens [data-token-id="${tokenId}"]`);
+    if (token && history) history.append(token);
+  });
+  if (history) [...history.children]
+    .sort((first, second) => Number(second.dataset.tokenId) - Number(first.dataset.tokenId))
+    .forEach((token) => history.append(token));
+  document.querySelector("#active-bookmarklet-section").hidden = !document.querySelector("#active-bookmarklet-tokens").children.length;
+  try { sessionStorage.removeItem(recentlyRevokedBookmarkletKey); } catch (_) { /* No stored state to clear. */ }
+  recentlyRevokedBookmarklets = [];
+});
+document.querySelectorAll(".token-info-toggle").forEach((button) => button.addEventListener("click", () => {
+  const details = document.querySelector(`#${button.getAttribute("aria-controls")}`);
+  const isOpen = !details.hidden;
+  details.hidden = isOpen;
+  button.setAttribute("aria-expanded", String(!isOpen));
+}));
 document.querySelectorAll('form[method="post"]').forEach((submittedForm) => submittedForm.addEventListener("submit", () => {
   if (new URL(submittedForm.action, window.location.href).pathname !== "/auth/logout") saveDashboardState();
 }));
