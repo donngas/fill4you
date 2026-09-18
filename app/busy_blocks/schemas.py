@@ -1,7 +1,7 @@
 from datetime import datetime, time
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 BusyBlockSource = Literal["timetable", "manual", "google_calendar"]
 
@@ -15,6 +15,8 @@ class BusyBlockInput(BaseModel):
     end_time: time | None = None
     starts_at: datetime | None = None
     ends_at: datetime | None = None
+    before_buffer_minutes: int = Field(default=15, ge=0, le=720)
+    after_buffer_minutes: int = Field(default=15, ge=0, le=720)
 
     @model_validator(mode="after")
     def validate_schedule(self) -> "BusyBlockInput":

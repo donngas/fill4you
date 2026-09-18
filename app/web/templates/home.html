@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
-  <section class="hero">
-    <p class="eyebrow">fill4you</p>
-    <h1>당신을 위한 When2meet 초안 자동완성</h1>
-    {% if user %}
-      <p>로그인됨: {{ user.display_name }}</p>
-      <form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit">로그아웃</button></form>
-    {% else %}
-      {% if auth_error == "google_not_configured" %}<p class="notice">Google 로그인이 아직 설정되지 않았습니다.</p>{% elif auth_error == "google_failed" %}<p class="notice">Google 로그인에 실패했습니다. 다시 시도해 주세요.</p>{% endif %}
-      <a class="button" href="/auth/google">Google로 계속하기</a>
-      {% if development_login_enabled %}
-        <form method="post" action="/auth/development"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">개발용 로그인</button></form>
+<section class="landing">
+  <section class="landing-hero">
+    <div class="landing-copy">
+      <h1>when2meet 초안,<br>자동완성으로 "딸깍"</h1>
+      <p class="landing-description">시간표, 직접 추가한 일정, 구글 캘린더 기반으로 자동완성</p>
+      {% if user %}
+        <p class="signed-in">{{ user.display_name }} 계정으로 로그인되어 있습니다.</p>
+        <form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="secondary">로그아웃</button></form>
+      {% else %}
+        {% if auth_error == "google_not_configured" %}<p class="notice">구글 로그인이 아직 설정되지 않았습니다.</p>{% elif auth_error == "google_failed" %}<p class="notice">구글 로그인에 실패했습니다. 다시 시도해 주세요.</p>{% endif %}
+        <div class="landing-actions"><a class="button" href="/auth/google">구글 계정으로 시작하기</a>{% if development_login_enabled %}<form method="post" action="/auth/development"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">개발용 로그인</button></form>{% endif %}</div>
       {% endif %}
-    {% endif %}
+    </div>
   </section>
+</section>
 {% endblock %}

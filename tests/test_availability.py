@@ -43,7 +43,28 @@ def test_desired_mask_excludes_any_slot_that_overlaps_busy_time() -> None:
         datetime.fromisoformat("2026-09-18T15:30:00+09:00"),
     ]
 
-    assert desired_mask([block], slots) == [False, False, True]
+    assert desired_mask([block], slots) == [False, False, False]
+
+
+def test_desired_mask_includes_before_and_after_buffers() -> None:
+    block = BusyBlock(
+        user_id=1,
+        source="manual",
+        title="Appointment",
+        is_recurring=True,
+        weekday=0,
+        start_time=time(10),
+        end_time=time(11),
+        before_buffer_minutes=30,
+        after_buffer_minutes=15,
+    )
+    slots = [
+        datetime.fromisoformat("2026-09-21T09:15:00+09:00"),
+        datetime.fromisoformat("2026-09-21T09:30:00+09:00"),
+        datetime.fromisoformat("2026-09-21T11:15:00+09:00"),
+    ]
+
+    assert desired_mask([block], slots) == [True, False, True]
 
 
 def test_availability_endpoint_uses_scoped_token(client: TestClient, db_session: Session) -> None:
