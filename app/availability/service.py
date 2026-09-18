@@ -39,3 +39,28 @@ def desired_mask(
         not any(overlaps_busy_block(block, slot, slot_minutes) for block in blocks)
         for slot in slots
     ]
+
+
+def busy_preview_blocks(
+    blocks: list[BusyBlock],
+    slots: list[datetime],
+    slot_minutes: int,
+    *,
+    include_titles: bool,
+) -> list[dict[str, int | str | list[int] | None]]:
+    preview_blocks = []
+    for block in blocks:
+        slot_indexes = [
+            index
+            for index, slot in enumerate(slots)
+            if overlaps_busy_block(block, slot, slot_minutes)
+        ]
+        if slot_indexes:
+            preview_blocks.append(
+                {
+                    "id": block.id,
+                    "title": block.title if include_titles else None,
+                    "slot_indexes": slot_indexes,
+                }
+            )
+    return preview_blocks

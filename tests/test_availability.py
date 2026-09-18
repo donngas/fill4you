@@ -50,17 +50,16 @@ def test_availability_endpoint_uses_scoped_token(client: TestClient, db_session:
     user = User(email="student@example.com", display_name="Student")
     db_session.add(user)
     db_session.flush()
-    db_session.add(
-        BusyBlock(
-            user_id=user.id,
-            source="manual",
-            title="Appointment",
-            is_recurring=True,
-            weekday=0,
-            start_time=time(10),
-            end_time=time(11),
-        )
+    block = BusyBlock(
+        user_id=user.id,
+        source="manual",
+        title="Appointment",
+        is_recurring=True,
+        weekday=0,
+        start_time=time(10),
+        end_time=time(11),
     )
+    db_session.add(block)
     db_session.commit()
     token, raw_token = bookmarklet_service.create_token(db_session, user.id, "Test token")
     payload = {"slots": ["2026-09-21T10:30:00+09:00", "2026-09-21T12:00:00+09:00"]}
@@ -71,7 +70,10 @@ def test_availability_endpoint_uses_scoped_token(client: TestClient, db_session:
         headers={"Authorization": f"Bearer {raw_token}"},
     )
     assert response.status_code == 200
-    assert response.json() == {"desired": [False, True]}
+    assert response.json() == {
+        "desired": [False, True],
+        "busy_blocks": [{"id": block.id, "title": "Appointment", "slot_indexes": [0]}],
+    }
 
     assert bookmarklet_service.revoke_token(db_session, user.id, token.id)
     revoked = client.post(
@@ -91,3 +93,9 @@ def test_bookmarklet_script_keeps_when2meet_adapter_isolated(client: TestClient)
     assert "TimeOfSlot" in response.text
     assert "getBoundingClientRect" in response.text
     assert "range.start.element" in response.text
+    assert "showPreview" in response.text
+    assert "getPreviewSlots" in response.text
+    assert "fill4you-preview-add" in response.text
+    assert "fill4you-preview-busy" in response.text
+    assert "fill4you-busy-label" in response.text
+    assert "fill4you-preview-panel" in response.text
