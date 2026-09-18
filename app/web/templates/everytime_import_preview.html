@@ -2,7 +2,7 @@
 {% block content %}
 <main class="import-preview-page">
   <h1>에브리타임 시간표 확인</h1>
-  <p>인식한 강의명을 확인하고 필요하면 수정하세요. 확인하면 기존 시간표가 이 목록으로 교체됩니다.</p>
+  <p>인식한 강의명을 확인하고 필요하면 수정하세요.</p>
   {% if preview.warnings %}{% for warning in preview.warnings %}<p class="notice">{{ warning }}</p>{% endfor %}{% endif %}
   <form method="post" action="/everytime/import/confirm" class="import-preview-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -15,7 +15,7 @@
         <label>종료<input type="time" name="end_times" value="{{ block.end_time.strftime('%H:%M') }}" required></label>
       </div>
     {% endfor %}
-    <div class="form-actions"><button type="submit">시간표에 적용</button><a class="button secondary" href="/dashboard">취소</a></div>
+    <div class="form-actions"><label class="checkbox-label"><input type="checkbox" name="replace_timetable" checked> 현재 시간표를 대체하기</label><button type="submit">시간표에 적용</button><a class="button secondary" href="/dashboard">취소</a></div>
   </form>
 </main>
 {% endblock %}

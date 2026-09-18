@@ -58,6 +58,7 @@ async def preview_import(
 @router.post("/import/confirm")
 def confirm_import(
     request: Request,
+    replace_timetable: bool = Form(False),
     titles: list[str] = Form(),
     weekdays: list[int] = Form(),
     start_times: list[time] = Form(),
@@ -87,5 +88,8 @@ def confirm_import(
         ]
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors()) from error
-    busy_block_service.replace_source(db, user_id, "timetable", blocks)
+    if replace_timetable:
+        busy_block_service.replace_source(db, user_id, "timetable", blocks)
+    else:
+        busy_block_service.create_many(db, user_id, blocks)
     return RedirectResponse(url="/dashboard", status_code=303)

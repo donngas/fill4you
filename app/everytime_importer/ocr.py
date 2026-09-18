@@ -86,4 +86,6 @@ def _looks_like_location(text: str) -> bool:
 
 def _correct_common_ocr_confusions(title: str) -> str:
     # The Korean OCR model occasionally mistakes the first consonant of 딥러닝 at small sizes.
-    return title.replace("덥러닝", "딥러닝").replace("립러닝", "딥러닝")
+    corrected = title.replace("덥러닝", "딥러닝").replace("립러닝", "딥러닝")
+    stripped = re.sub(r"\s*\(?영강\)?$", "", corrected).strip()
+    return stripped or corrected

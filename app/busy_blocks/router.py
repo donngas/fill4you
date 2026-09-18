@@ -191,3 +191,14 @@ def delete_block(
         google_calendar_service.exclude_event(db, user_id, block.external_event_id)
     service.delete(db, block)
     return RedirectResponse(url="/dashboard", status_code=303)
+
+
+@router.post("/timetable/reset")
+def reset_timetable(
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
+):
+    user_id = _current_user_id(request, db)
+    service.delete_for_source(db, user_id, "timetable")
+    return RedirectResponse(url="/dashboard", status_code=303)

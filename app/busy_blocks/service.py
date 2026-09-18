@@ -98,3 +98,10 @@ def update(
 def delete(db: Session, block: BusyBlock) -> None:
     db.delete(block)
     db.commit()
+
+
+def delete_for_source(db: Session, user_id: int, source: str) -> None:
+    statement = select(BusyBlock).where(BusyBlock.user_id == user_id, BusyBlock.source == source)
+    for block in db.scalars(statement):
+        db.delete(block)
+    db.commit()

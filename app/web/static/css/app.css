@@ -25,6 +25,8 @@ h2 { font-size: 16px; line-height: 1.4; }
 .secondary:hover { background: #f1f2ed; }
 .text-button { min-height: auto; padding: 4px 0; border: 0; background: transparent; color: #40574b; font-weight: 600; }
 .text-button:hover { background: transparent; color: #1f3429; text-decoration: underline; }
+.timetable-reset { color: #a43d32; }
+.timetable-reset:hover { color: #883027; }
 .danger { border-color: #a43d32; background: #a43d32; }
 .danger:hover { background: #883027; }
 .notice { margin: 12px 0; color: #8e382c; font-size: 14px; line-height: 1.5; }
