@@ -8,7 +8,7 @@ Copy `.env.example` to `.env`, set a secure `SESSION_SECRET`, then run `docker c
 Set `APP_PORT` if port 8000 is already in use.
 Replace the example PostgreSQL and session values before deployment.
 Configuration loads from `.env`; deployed process environment variables take precedence.
-Google sign-in requires the credentials in `.env`; the development login is available until then.
+Google Calendar sync also requires a `GOOGLE_TOKEN_ENCRYPTION_KEY`; generate one with the command in `.env.example`, then sign out and sign in again so fill4you can store a refreshable token securely.
 For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2meet.com", "https://www.when2meet.com"]`.
 
 ## Roadmap
@@ -41,5 +41,6 @@ For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2mee
 4. Availability engine: normalize busy blocks and produce slot-aligned availability masks.
 5. Bookmarklet helper tokens and the availability API contract.
 6. Bookmarklet and isolated When2meet adapter: inspect slots, confirm changes, and apply changed ranges.
-7. Google Calendar OAuth, calendar selection, periodic sync, and bookmarklet-triggered refresh.
-8. Calendar availability integration, tests, error handling, security hardening, and deployment configuration.
+7. Google Calendar OAuth and busy-event sync across the configured 7-day-past/90-day-future window; a 15-minute periodic sync and bookmarklet refresh keep it current, while local edits and exclusions survive normal refreshes.
+8. Calendar selection and periodic background sync.
+9. Calendar availability integration, tests, error handling, security hardening, and deployment configuration.

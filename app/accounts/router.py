@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.accounts.service import get_or_create_development_user, upsert_google_user
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
+from app.google_calendar import service as google_calendar_service
 
 router = APIRouter(prefix="/auth", tags=["accounts"])
 oauth = OAuth()
@@ -35,7 +36,9 @@ async def google_login(request: Request, settings: Settings = Depends(get_settin
     if google is None:
         url = "/?" + urlencode({"auth_error": "google_not_configured"})
         return RedirectResponse(url=url, status_code=303)
-    return await google.authorize_redirect(request, settings.google_redirect_uri)
+    return await google.authorize_redirect(
+        request, settings.google_redirect_uri, access_type="offline", prompt="consent"
+    )
 
 
 @router.get("/google/callback")
@@ -56,6 +59,8 @@ async def google_callback(
         display_name=user_info.get("name") or user_info["email"],
         picture_url=user_info.get("picture"),
     )
+    if settings.google_calendar_configured:
+        google_calendar_service.save_token(db, user.id, token, settings)
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=303)
 

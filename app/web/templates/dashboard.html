@@ -42,8 +42,8 @@
       <div class="block-lists">
         {% for source, label in [("timetable", "시간표"), ("manual", "직접 추가"), ("google_calendar", "Google Calendar")] %}
           <section class="block-list" data-source-list="{{ source }}" {% if source != "timetable" %}hidden{% endif %}>
-            <div class="block-list-heading"><h2>{{ label }}</h2>{% if source == "google_calendar" %}<button type="button" class="secondary" disabled>새로고침</button>{% endif %}</div>
-            {% if source == "google_calendar" %}<label class="checkbox-label"><input type="checkbox" id="overwrite-local-changes" disabled> 로컬 변경사항 덮어쓰기</label><p class="empty-state">새로고침은 Google Calendar 동기화 단계에서 활성화됩니다. 기본적으로 로컬 변경사항은 유지됩니다.</p>{% endif %}
+            <div class="block-list-heading"><h2>{{ label }}</h2>{% if source == "google_calendar" %}<form method="post" action="/google-calendar/sync"><label class="checkbox-label"><input type="checkbox" name="overwrite_local_changes"> 로컬 변경사항 덮어쓰기</label><button type="submit" class="secondary" {% if not google_calendar_configured or not google_calendar_connected %}disabled{% endif %}>새로고침</button></form>{% endif %}</div>
+            {% if source == "google_calendar" and google_sync_message %}<p class="notice">{{ google_sync_message }}</p>{% elif source == "google_calendar" and not google_calendar_configured %}<p class="empty-state">Google Calendar 동기화 암호화 키를 설정한 뒤 다시 로그인하세요.</p>{% elif source == "google_calendar" and not google_calendar_connected %}<p class="empty-state">Google Calendar 연결을 위해 로그아웃한 뒤 Google로 다시 로그인하세요.</p>{% endif %}
             {% set source_blocks = blocks | selectattr("source", "equalto", source) | list %}
             {% if source_blocks %}
               {% for block in source_blocks %}

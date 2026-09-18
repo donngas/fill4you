@@ -13,6 +13,7 @@ from app.busy_blocks import service as busy_block_service
 from app.busy_blocks.models import BusyBlock
 from app.core.config import Settings, get_settings
 from app.core.database import get_db
+from app.google_calendar import service as google_calendar_service
 from app.shared.time import SEOUL, as_seoul_time
 
 router = APIRouter()
@@ -75,6 +76,7 @@ def _block_for_client(block: BusyBlock) -> dict[str, str | int | bool | None]:
 def dashboard(
     request: Request,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ):
     user = get_user(db, request.session.get("user_id"))
     if user is None:
@@ -98,5 +100,8 @@ def dashboard(
                 if new_bookmarklet_token
                 else None
             ),
+            "google_calendar_connected": google_calendar_service.has_token(db, user.id),
+            "google_calendar_configured": settings.google_calendar_configured,
+            "google_sync_message": request.session.pop("google_sync_message", None),
         },
     )
