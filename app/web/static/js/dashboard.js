@@ -7,8 +7,16 @@ const heading = document.querySelector("#form-heading");
 const recurringFields = document.querySelector("#recurring-fields");
 const oneTimeFields = document.querySelector("#one-time-fields");
 const cancelEdit = document.querySelector("#cancel-edit");
+const cancelEditSecondary = document.querySelector("#cancel-edit-secondary");
 const titles = { timetable: "시간표", manual: "직접 추가", google_calendar: "Google Calendar" };
-const dashboardStateKey = "fill4you.dashboard-state";
+const grid = document.querySelector("#week-grid");
+const weekLabel = document.querySelector("#week-label");
+const calendarDescription = document.querySelector("#calendar-description");
+const hourHeight = 44;
+const minutesPerHour = 60;
+const firstHour = 0;
+const lastHour = 24;
+let currentWeekStart = parseDate(dashboard.dataset.weekStart);
 
 function updateEditorVisibility(showForm) {
   form.hidden = !showForm;
@@ -33,111 +41,43 @@ function resetForm() {
   heading.textContent = `${titles[selectedSource]} 추가`;
   showFormButton.textContent = `${titles[selectedSource]} 추가`;
   document.querySelector("#save-button").textContent = "추가";
-  cancelEdit.hidden = true;
   updateEditorVisibility(false);
 }
 
-function selectSource(source) {
+function selectSource(source, moveFocus = false) {
   const tab = document.querySelector(`.source-tab[data-source="${source}"]`);
   if (!tab) return;
   sourceInput.value = source;
   document.querySelectorAll(".source-tab").forEach((item) => {
-    item.classList.toggle("is-active", item === tab);
+    const selected = item === tab;
+    item.classList.toggle("is-active", selected);
+    item.setAttribute("aria-selected", String(selected));
+    item.tabIndex = selected ? 0 : -1;
   });
   document.querySelectorAll("[data-source-list]").forEach((list) => {
     list.hidden = list.dataset.sourceList !== source;
   });
   resetForm();
-}
-
-showFormButton.addEventListener("click", () => updateEditorVisibility(true));
-
-document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => {
-  radio.addEventListener("change", () => setScheduleType(radio.value));
-});
-document.querySelectorAll(".source-tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    selectSource(tab.dataset.source);
-  });
-});
-document.querySelectorAll(".edit-block").forEach((button) => {
-  button.addEventListener("click", () => {
-    const block = blocks.find((item) => item.id === Number(button.dataset.blockId));
-    sourceInput.value = block.source;
-    updateEditorVisibility(true);
-    form.action = `/blocks/${block.id}`;
-    document.querySelector("#title-input").value = block.title;
-    document.querySelector(`input[name="schedule_type"][value="${block.isRecurring ? "recurring" : "one_time"}"]`).checked = true;
-    setScheduleType(block.isRecurring ? "recurring" : "one_time");
-    document.querySelector("#weekday-input").value = block.weekday ?? 0;
-    document.querySelector("#start-time-input").value = block.startTime ?? "";
-    document.querySelector("#end-time-input").value = block.endTime ?? "";
-    document.querySelector("#starts-at-input").value = block.startsAt ?? "";
-    document.querySelector("#ends-at-input").value = block.endsAt ?? "";
-    heading.textContent = `${titles[block.source]} 수정`;
-    document.querySelector("#save-button").textContent = "저장";
-    cancelEdit.hidden = false;
-  });
-});
-cancelEdit.addEventListener("click", resetForm);
-
-const calendarScroll = document.querySelector("#calendar-scroll");
-const grid = document.querySelector("#week-grid");
-const loadMoreButton = document.querySelector("#load-more-dates");
-const collapseTwoWeeksButton = document.querySelector("#collapse-two-weeks");
-const collapseAllDatesButton = document.querySelector("#collapse-all-dates");
-const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-const hourHeight = 56;
-const minutesPerHour = 60;
-const startHour = 8;
-const endHour = 23;
-let dates = createDates(dashboard.dataset.weekStart, 14);
-
-function readDashboardState() {
-  try {
-    const rawState = sessionStorage.getItem(dashboardStateKey);
-    sessionStorage.removeItem(dashboardStateKey);
-    return rawState ? JSON.parse(rawState) : null;
-  } catch (_) {
-    return null;
-  }
-}
-
-function saveDashboardState() {
-  try {
-    sessionStorage.setItem(
-      dashboardStateKey,
-      JSON.stringify({
-        source: sourceInput.value,
-        dates: dates.map(formatDate),
-        calendarScrollLeft: calendarScroll.scrollLeft,
-        pageScrollY: window.scrollY,
-      }),
-    );
-  } catch (_) {
-    // The dashboard remains fully usable if browser storage is unavailable.
-  }
+  if (moveFocus) tab.focus();
 }
 
 function parseDate(dateValue) {
   const [year, month, day] = dateValue.split("-").map(Number);
-  return new Date(year, month - 1, day);
+  return new Date(year, month - 1, day, 12);
 }
 
 function formatDate(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-");
 }
 
-function createDates(startDate, count) {
-  const first = parseDate(startDate);
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(first);
-    date.setDate(first.getDate() + index);
-    return date;
-  });
+function addDays(date, count) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + count);
+  return next;
+}
+
+function createDates(startDate) {
+  return Array.from({ length: 7 }, (_, index) => addDays(startDate, index));
 }
 
 function minutesFromTime(value) {
@@ -159,80 +99,123 @@ function blockSegmentOnDate(block, date) {
   return start < end ? { start, end } : null;
 }
 
-function renderCalendar() {
-  grid.style.gridTemplateColumns = `4rem repeat(${dates.length}, 8rem)`;
-  grid.style.gridTemplateRows = `2.75rem repeat(${endHour - startHour}, ${hourHeight}px)`;
-  grid.innerHTML = '<div class="grid-corner"></div>';
-  dates.forEach((date, index) => {
-    const label = `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
-    grid.insertAdjacentHTML("beforeend", `<div class="day-heading" style="grid-column:${index + 2};grid-row:1">${label}</div>`);
-  });
-  for (let hour = startHour; hour < endHour; hour += 1) {
-    const row = hour - startHour + 2;
-    const cells = dates.map((_, index) => `<div class="hour-cell" style="grid-column:${index + 2};grid-row:${row}"></div>`).join("");
-    grid.insertAdjacentHTML("beforeend", `<div class="hour-label" style="grid-row:${row}">${String(hour).padStart(2, "0")}:00</div>${cells}`);
-  }
-  dates.forEach((date, index) => {
-    blocks.forEach((block) => {
-      const segment = blockSegmentOnDate(block, date);
-      if (segment) renderBlock(block, index, segment);
-    });
-  });
-  const canCollapse = dates.length > 14;
-  collapseTwoWeeksButton.disabled = !canCollapse;
-  collapseAllDatesButton.disabled = !canCollapse;
+function sourceLabel(source) {
+  return { timetable: "시간표", manual: "직접 추가", google_calendar: "Google Calendar" }[source];
 }
 
-function renderBlock(block, dayIndex, segment) {
-  const visibleStart = startHour * minutesPerHour;
-  const visibleEnd = endHour * minutesPerHour;
-  const start = Math.max(segment.start, visibleStart);
-  const end = Math.min(segment.end, visibleEnd);
-  if (start >= end) return;
-  const item = document.createElement("div");
+function layoutSegments(segments) {
+  const sorted = [...segments].sort((a, b) => a.start - b.start || b.end - a.end);
+  const clusters = [];
+  let cluster = [];
+  let clusterEnd = -1;
+  sorted.forEach((segment) => {
+    if (cluster.length && segment.start >= clusterEnd) {
+      clusters.push(cluster);
+      cluster = [];
+      clusterEnd = -1;
+    }
+    cluster.push(segment);
+    clusterEnd = Math.max(clusterEnd, segment.end);
+  });
+  if (cluster.length) clusters.push(cluster);
+
+  return clusters.flatMap((cluster) => {
+    const columns = [];
+    cluster.forEach((segment) => {
+      let column = columns.findIndex((columnEnd) => columnEnd <= segment.start);
+      if (column === -1) {
+        column = columns.length;
+        columns.push(segment.end);
+      } else {
+        columns[column] = segment.end;
+      }
+      segment.column = column;
+    });
+    return cluster.map((segment) => ({ ...segment, columns: columns.length }));
+  });
+}
+
+function describeBlock(block, date, segment) {
+  const dateText = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(date);
+  const starts = `${String(Math.floor(segment.start / 60)).padStart(2, "0")}:${String(segment.start % 60).padStart(2, "0")}`;
+  const ends = `${String(Math.floor(segment.end / 60)).padStart(2, "0")}:${String(segment.end % 60).padStart(2, "0")}`;
+  return `${block.title}, ${sourceLabel(block.source)}, ${dateText} ${starts}–${ends}`;
+}
+
+function renderBlock(segment, dayIndex) {
+  const { block, date, start, end, column, columns } = segment;
+  const item = document.createElement("button");
+  item.type = "button";
   item.className = `preview-block source-${block.source}`;
-  item.style.left = `calc(4rem + ${dayIndex} * 8rem + .25rem)`;
-  item.style.top = `calc(2.75rem + ${(start - visibleStart) * (hourHeight / minutesPerHour)}px)`;
-  item.style.height = `${(end - start) * (hourHeight / minutesPerHour)}px`;
   item.textContent = block.title;
+  item.setAttribute("aria-label", describeBlock(block, date, segment));
+  item.style.left = `calc(4rem + ${dayIndex} * ((100% - 4rem) / 7) + ${column} * ((100% - 4rem) / 7 / ${columns}) + 3px)`;
+  item.style.width = `calc((100% - 4rem) / 7 / ${columns} - 6px)`;
+  item.style.top = `calc(44px + ${start * (hourHeight / minutesPerHour)}px + 2px)`;
+  item.style.height = `${Math.max((end - start) * (hourHeight / minutesPerHour) - 4, 24)}px`;
+  item.addEventListener("click", () => { calendarDescription.textContent = describeBlock(block, date, segment); });
   grid.append(item);
 }
 
-loadMoreButton.addEventListener("click", () => {
-  const previousScrollLeft = calendarScroll.scrollLeft;
-  const nextDate = new Date(dates.at(-1));
-  nextDate.setDate(nextDate.getDate() + 1);
-  dates = dates.concat(createDates(formatDate(nextDate), 14));
-  renderCalendar();
-  calendarScroll.scrollLeft = previousScrollLeft;
-});
-
-collapseTwoWeeksButton.addEventListener("click", () => {
-  if (dates.length <= 14) return;
-  dates = dates.slice(0, -14);
-  renderCalendar();
-});
-
-collapseAllDatesButton.addEventListener("click", () => {
-  dates = dates.slice(0, 14);
-  renderCalendar();
-});
-
-const restoredState = readDashboardState();
-if (restoredState?.dates?.[0] === dashboard.dataset.weekStart) {
-  dates = restoredState.dates.map(parseDate);
-}
-if (restoredState?.source) selectSource(restoredState.source);
-renderCalendar();
-if (restoredState) {
-  calendarScroll.scrollLeft = Number(restoredState.calendarScrollLeft) || 0;
-  requestAnimationFrame(() => window.scrollTo(0, Number(restoredState.pageScrollY) || 0));
+function renderCalendar() {
+  const dates = createDates(currentWeekStart);
+  const dateFormatter = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
+  const rangeFormatter = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+  weekLabel.textContent = `${rangeFormatter.format(dates[0])} – ${rangeFormatter.format(dates[6])}`;
+  grid.style.gridTemplateColumns = "4rem repeat(7, minmax(88px, 1fr))";
+  grid.style.gridTemplateRows = `44px repeat(${lastHour - firstHour}, ${hourHeight}px)`;
+  grid.innerHTML = '<div class="grid-corner" aria-hidden="true"></div>';
+  dates.forEach((date, index) => {
+    grid.insertAdjacentHTML("beforeend", `<div class="day-heading" role="columnheader" style="grid-column:${index + 2};grid-row:1">${dateFormatter.format(date)}</div>`);
+  });
+  for (let hour = firstHour; hour < lastHour; hour += 1) {
+    const row = hour - firstHour + 2;
+    const cells = dates.map((_, index) => `<div class="hour-cell" role="gridcell" aria-label="${hour}시" style="grid-column:${index + 2};grid-row:${row}"></div>`).join("");
+    grid.insertAdjacentHTML("beforeend", `<div class="hour-label" style="grid-row:${row}">${String(hour).padStart(2, "0")}:00</div>${cells}`);
+  }
+  dates.forEach((date, index) => {
+    const segments = blocks.map((block) => {
+      const interval = blockSegmentOnDate(block, date);
+      return interval ? { block, date, ...interval } : null;
+    }).filter(Boolean);
+    layoutSegments(segments).forEach((segment) => renderBlock(segment, index));
+  });
 }
 
-document.querySelectorAll('form[method="post"]').forEach((submittedForm) => {
-  submittedForm.addEventListener("submit", () => {
-    if (new URL(submittedForm.action, window.location.href).pathname !== "/auth/logout") {
-      saveDashboardState();
-    }
+showFormButton.addEventListener("click", () => updateEditorVisibility(true));
+cancelEdit.addEventListener("click", resetForm);
+cancelEditSecondary.addEventListener("click", resetForm);
+document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => radio.addEventListener("change", () => setScheduleType(radio.value)));
+document.querySelectorAll(".source-tab").forEach((tab) => {
+  tab.addEventListener("click", () => selectSource(tab.dataset.source));
+  tab.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const tabs = [...document.querySelectorAll(".source-tab")];
+    const index = tabs.indexOf(tab);
+    const next = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : tabs[(index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+    selectSource(next.dataset.source, true);
   });
 });
+document.querySelectorAll(".edit-block").forEach((button) => button.addEventListener("click", () => {
+  const block = blocks.find((item) => item.id === Number(button.dataset.blockId));
+  sourceInput.value = block.source;
+  updateEditorVisibility(true);
+  form.action = `/blocks/${block.id}`;
+  document.querySelector("#title-input").value = block.title;
+  document.querySelector(`input[name="schedule_type"][value="${block.isRecurring ? "recurring" : "one_time"}"]`).checked = true;
+  setScheduleType(block.isRecurring ? "recurring" : "one_time");
+  document.querySelector("#weekday-input").value = block.weekday ?? 0;
+  document.querySelector("#start-time-input").value = block.startTime ?? "";
+  document.querySelector("#end-time-input").value = block.endTime ?? "";
+  document.querySelector("#starts-at-input").value = block.startsAt ?? "";
+  document.querySelector("#ends-at-input").value = block.endsAt ?? "";
+  heading.textContent = `${titles[block.source]} 수정`;
+  document.querySelector("#save-button").textContent = "저장";
+  document.querySelector("#title-input").focus();
+}));
+document.querySelectorAll("[data-confirm]").forEach((button) => button.addEventListener("click", (event) => { if (!window.confirm(button.dataset.confirm)) event.preventDefault(); }));
+document.querySelector("#previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); renderCalendar(); });
+document.querySelector("#next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); renderCalendar(); });
+document.querySelector("#current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); renderCalendar(); });
+renderCalendar();

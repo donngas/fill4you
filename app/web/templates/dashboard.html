@@ -1,73 +1,72 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="dashboard" data-week-start="{{ week_start }}" data-week-end="{{ week_end }}">
+<section class="dashboard" data-week-start="{{ week_start }}">
   <header class="dashboard-header">
     <div>
-      <p class="eyebrow">fill4you</p>
       <h1>내 일정</h1>
-      <p>모든 시간은 Asia/Seoul 기준입니다.</p>
+      <p>등록된 바쁜 시간을 확인하고 관리합니다. 모든 시간은 한국 표준시(Asia/Seoul) 기준입니다.</p>
     </div>
     <form method="post" action="/auth/logout"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">로그아웃</button></form>
   </header>
+
   <div class="dashboard-layout">
     <aside class="schedule-editor">
+      <div class="editor-heading"><h2>일정 관리</h2><p>출처별로 등록된 바쁜 시간을 관리하세요.</p></div>
+      <nav class="source-tabs" role="tablist" aria-label="일정 출처">
+        <button type="button" class="source-tab is-active" id="timetable-tab" role="tab" aria-selected="true" aria-controls="timetable-panel" data-source="timetable">시간표</button>
+        <button type="button" class="source-tab" id="manual-tab" role="tab" aria-selected="false" aria-controls="manual-panel" data-source="manual" tabindex="-1">직접 추가</button>
+        <button type="button" class="source-tab" id="google-calendar-tab" role="tab" aria-selected="false" aria-controls="google-calendar-panel" data-source="google_calendar" tabindex="-1">Google Calendar</button>
+      </nav>
+
+      <button id="show-block-form" type="button" class="add-block-button">시간표 추가</button>
+      <form id="block-form" class="block-form" method="post" action="/blocks" hidden>
+        <input id="source-input" type="hidden" name="source" value="timetable">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-heading"><h2 id="form-heading">시간표 추가</h2><button type="button" id="cancel-edit" class="text-button">닫기</button></div>
+        <label>일정 이름<input id="title-input" name="title" required maxlength="255" placeholder="예: 알고리즘"></label>
+        <fieldset><legend>일정 종류</legend><label><input type="radio" name="schedule_type" value="recurring" checked> 매주 반복</label><label><input type="radio" name="schedule_type" value="one_time"> 한 번만</label></fieldset>
+        <div id="recurring-fields"><label>요일<select id="weekday-input" name="weekday"><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option><option value="5">토요일</option><option value="6">일요일</option></select></label><div class="field-row"><label>시작<input id="start-time-input" type="time" name="start_time" required></label><label>종료<input id="end-time-input" type="time" name="end_time" required></label></div></div>
+        <div id="one-time-fields" hidden><label>시작<input id="starts-at-input" type="datetime-local" name="starts_at"></label><label>종료<input id="ends-at-input" type="datetime-local" name="ends_at"></label></div>
+        <div class="form-actions"><button type="submit" id="save-button">추가</button><button type="button" id="cancel-edit-secondary" class="secondary">취소</button></div>
+      </form>
+
+      <div class="block-lists">
+        {% for source, label in [("timetable", "시간표"), ("manual", "직접 추가"), ("google_calendar", "Google Calendar")] %}
+          <section class="block-list" id="{{ source | replace('_', '-') }}-panel" role="tabpanel" aria-labelledby="{{ source | replace('_', '-') }}-tab" data-source-list="{{ source }}" {% if source != "timetable" %}hidden{% endif %}>
+            <div class="block-list-heading"><h2>{{ label }}</h2>{% if source == "google_calendar" %}<form method="post" action="/google-calendar/sync" class="sync-form"><label class="checkbox-label"><input type="checkbox" name="overwrite_local_changes"> 직접 수정한 일정도 다시 가져오기</label><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="secondary" {% if not google_calendar_configured or not google_calendar_connected %}disabled{% endif %}>새로고침</button></form>{% endif %}</div>
+            {% if source == "google_calendar" and google_sync_message %}<p class="notice" role="status">{{ google_sync_message }}</p>{% elif source == "google_calendar" and not google_calendar_configured %}<p class="empty-state">Google Calendar 연결이 아직 준비되지 않았습니다. 관리자에게 연결 설정을 요청하세요.</p>{% elif source == "google_calendar" and not google_calendar_connected %}<p class="empty-state">Google Calendar를 연결하려면 Google 계정으로 다시 로그인하세요.</p>{% endif %}
+            {% if source == "google_calendar" and google_calendars %}<form method="post" action="/google-calendar/calendars" class="calendar-selection"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><fieldset><legend>가져올 캘린더</legend>{% for calendar in google_calendars %}<label class="checkbox-label"><input type="checkbox" name="calendar_ids" value="{{ calendar.external_calendar_id }}" {% if calendar.is_selected %}checked{% endif %}> {{ calendar.title }}{% if calendar.is_primary %} (기본){% endif %}</label>{% endfor %}</fieldset><button type="submit" class="secondary">선택 저장</button></form>{% endif %}
+            {% set source_blocks = blocks | selectattr("source", "equalto", source) | list %}
+            {% if source_blocks %}
+              <ul class="block-items">
+              {% for block in source_blocks %}
+                <li class="block-card"><div><strong>{{ block.title }}</strong><span>{% if block.is_recurring %}{{ ["월", "화", "수", "목", "금", "토", "일"][block.weekday] }}요일 · {{ block.start_time.strftime("%H:%M") }}–{{ block.end_time.strftime("%H:%M") }}{% else %}{{ block.starts_at.strftime("%Y-%m-%d %H:%M") }}–{{ block.ends_at.strftime("%H:%M") }}{% endif %}</span></div><div class="block-actions"><button type="button" class="edit-block secondary" data-block-id="{{ block.id }}">수정</button><form method="post" action="/blocks/{{ block.id }}/delete"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="danger" {% if source == "google_calendar" %}data-confirm="이 일정을 삭제하면 이후 Google Calendar 동기화에서도 제외됩니다. 계속할까요?"{% endif %}>{% if source == "google_calendar" %}가져오기 제외{% else %}삭제{% endif %}</button></form></div></li>
+              {% endfor %}
+              </ul>
+            {% elif source != "google_calendar" %}<p class="empty-state">등록된 일정이 없습니다.</p>{% endif %}
+          </section>
+        {% endfor %}
+      </div>
+
       <details class="bookmarklet-setup">
-        <summary>When2meet 북마크릿</summary>
+        <summary>When2meet에서 사용하기</summary>
         {% if bookmarklet_url %}
-          <p>아래 버튼을 북마크바로 드래그하세요. 이 토큰은 지금만 다시 볼 수 있습니다.</p>
-          <a class="bookmarklet-link" href="{{ bookmarklet_url }}">⚡ fill4you</a>
+          <p>아래 링크를 북마크 바로 드래그하세요. 이 링크는 지금만 다시 볼 수 있습니다.</p>
+          <a class="bookmarklet-link" href="{{ bookmarklet_url }}">fill4you 북마크릿</a>
         {% else %}
-          <p>When2meet에서 사용할 전용 토큰을 만듭니다.</p>
+          <p>현재 등록된 바쁜 시간을 When2meet에 반영할 전용 링크를 만듭니다.</p>
           <form method="post" action="/bookmarklet/tokens"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>이름<input name="label" maxlength="80" value="When2meet bookmarklet"></label><button type="submit">북마크릿 만들기</button></form>
         {% endif %}
         {% if bookmarklet_tokens %}
           <ul class="token-list">{% for token in bookmarklet_tokens %}<li><span>{{ token.label }}</span>{% if token.revoked_at %}<em>해지됨</em>{% else %}<form method="post" action="/bookmarklet/tokens/{{ token.id }}/revoke"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button" type="submit">해지</button></form>{% endif %}</li>{% endfor %}</ul>
         {% endif %}
       </details>
-      <div class="source-tabs">
-        <button type="button" class="source-tab is-active" data-source="timetable">시간표</button>
-        <button type="button" class="source-tab" data-source="manual">직접 추가</button>
-        <button type="button" class="source-tab" data-source="google_calendar">Google Calendar</button>
-      </div>
-      <button id="show-block-form" type="button" class="add-block-button">시간표 추가</button>
-      <form id="block-form" class="block-form" method="post" action="/blocks" hidden>
-        <input id="source-input" type="hidden" name="source" value="timetable">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <h2 id="form-heading">시간표 추가</h2>
-        <label>이름<input id="title-input" name="title" required maxlength="255" placeholder="예: 알고리즘"></label>
-        <fieldset><legend>일정 종류</legend><label><input type="radio" name="schedule_type" value="recurring" checked> 매주 반복</label><label><input type="radio" name="schedule_type" value="one_time"> 한 번만</label></fieldset>
-        <div id="recurring-fields"><label>요일<select id="weekday-input" name="weekday"><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option><option value="5">토요일</option><option value="6">일요일</option></select></label><div class="field-row"><label>시작<input id="start-time-input" type="time" name="start_time" required></label><label>종료<input id="end-time-input" type="time" name="end_time" required></label></div></div>
-        <div id="one-time-fields" hidden><label>시작<input id="starts-at-input" type="datetime-local" name="starts_at"></label><label>종료<input id="ends-at-input" type="datetime-local" name="ends_at"></label></div>
-        <div class="form-actions"><button type="submit" id="save-button">추가</button><button type="button" id="cancel-edit" class="secondary" hidden>취소</button></div>
-      </form>
-      <div class="block-lists">
-        {% for source, label in [("timetable", "시간표"), ("manual", "직접 추가"), ("google_calendar", "Google Calendar")] %}
-          <section class="block-list" data-source-list="{{ source }}" {% if source != "timetable" %}hidden{% endif %}>
-            <div class="block-list-heading"><h2>{{ label }}</h2>{% if source == "google_calendar" %}<form method="post" action="/google-calendar/sync"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label class="checkbox-label"><input type="checkbox" name="overwrite_local_changes"> 로컬 변경사항 덮어쓰기</label><button type="submit" class="secondary" {% if not google_calendar_configured or not google_calendar_connected %}disabled{% endif %}>새로고침</button></form>{% endif %}</div>
-            {% if source == "google_calendar" and google_sync_message %}<p class="notice">{{ google_sync_message }}</p>{% elif source == "google_calendar" and not google_calendar_configured %}<p class="empty-state">Google Calendar 동기화 암호화 키를 설정한 뒤 다시 로그인하세요.</p>{% elif source == "google_calendar" and not google_calendar_connected %}<p class="empty-state">Google Calendar 연결을 위해 로그아웃한 뒤 Google로 다시 로그인하세요.</p>{% endif %}
-            {% if source == "google_calendar" and google_calendars %}<form method="post" action="/google-calendar/calendars" class="calendar-selection"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><fieldset><legend>동기화할 캘린더</legend>{% for calendar in google_calendars %}<label class="checkbox-label"><input type="checkbox" name="calendar_ids" value="{{ calendar.external_calendar_id }}" {% if calendar.is_selected %}checked{% endif %}> {{ calendar.title }}{% if calendar.is_primary %} (기본){% endif %}</label>{% endfor %}</fieldset><button type="submit" class="secondary">선택 저장</button></form>{% endif %}
-            {% set source_blocks = blocks | selectattr("source", "equalto", source) | list %}
-            {% if source_blocks %}
-              {% for block in source_blocks %}
-                <article class="block-card"><strong>{{ block.title }}</strong><span>{% if block.is_recurring %}{{ ["월", "화", "수", "목", "금", "토", "일"][block.weekday] }} · {{ block.start_time.strftime("%H:%M") }}–{{ block.end_time.strftime("%H:%M") }}{% else %}{{ block.starts_at.strftime("%Y-%m-%d %H:%M") }}–{{ block.ends_at.strftime("%H:%M") }}{% endif %}</span><div><button type="button" class="edit-block secondary" data-block-id="{{ block.id }}">수정</button><form method="post" action="/blocks/{{ block.id }}/delete"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="danger">삭제</button></form></div></article>
-              {% endfor %}
-            {% elif source != "google_calendar" %}<p class="empty-state">아직 일정이 없습니다.</p>{% endif %}
-          </section>
-        {% endfor %}
-      </div>
     </aside>
+
     <section class="calendar-preview">
-      <div class="preview-heading"><h2>일정 미리보기</h2><span>Asia/Seoul</span></div>
-      <div id="calendar-scroll" class="calendar-scroll">
-          <div class="calendar-canvas">
-          <div id="week-grid" class="week-grid"></div>
-          <div class="load-more-panel">
-            <button id="load-more-dates" type="button" class="load-more-button">더 불러오기</button>
-            <button id="collapse-two-weeks" type="button" class="load-more-button" disabled>2주 접기</button>
-            <button id="collapse-all-dates" type="button" class="load-more-button" disabled>모두 접기</button>
-          </div>
-        </div>
-      </div>
+      <div class="preview-heading"><div><h2>등록된 일정</h2><p id="week-label" aria-live="polite"></p></div><div class="calendar-navigation"><button id="previous-week" type="button" class="secondary">이전 주</button><button id="current-week" type="button" class="secondary">이번 주</button><button id="next-week" type="button" class="secondary">다음 주</button></div></div>
+      <p id="calendar-description" class="calendar-description" aria-live="polite">등록된 일정 블록을 선택하면 상세 정보를 확인할 수 있습니다.</p>
+      <div id="calendar-scroll" class="calendar-scroll"><div id="week-grid" class="week-grid" role="grid" aria-label="등록된 일정 주간 보기"></div></div>
     </section>
   </div>
 </section>
