@@ -34,7 +34,7 @@
         <div class="form-heading"><h2 id="form-heading">시간표 추가</h2><button type="button" id="cancel-edit" class="text-button">닫기</button></div>
         <label>일정 이름<input id="title-input" name="title" required maxlength="255" placeholder="예: 알고리즘"></label>
         <fieldset><legend>일정 종류</legend><label><input type="radio" name="schedule_type" value="recurring" checked> 매주 반복</label><label><input type="radio" name="schedule_type" value="one_time"> 한 번만</label></fieldset>
-        <div id="recurring-fields"><label id="single-weekday-field">요일<select id="weekday-input" name="weekday"><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option><option value="5">토요일</option><option value="6">일요일</option></select></label><fieldset id="multiple-weekdays-field" hidden><legend>요일 (복수 선택 가능)</legend>{% for index, label in [(0, "월"), (1, "화"), (2, "수"), (3, "목"), (4, "금"), (5, "토"), (6, "일")] %}<label><input type="checkbox" name="weekdays" value="{{ index }}"> {{ label }}</label>{% endfor %}</fieldset><div class="field-row"><label>시작<input id="start-time-input" type="time" name="start_time" required></label><label>종료<input id="end-time-input" type="time" name="end_time" required></label></div></div>
+        <div id="recurring-fields"><fieldset class="weekday-picker"><legend>요일</legend><div class="weekday-options">{% for index, label in [(0, "월"), (1, "화"), (2, "수"), (3, "목"), (4, "금"), (5, "토"), (6, "일")] %}<label class="weekday-choice"><input type="checkbox" name="weekdays" value="{{ index }}" {% if index == 0 %}checked{% endif %}><span>{{ label }}</span></label>{% endfor %}</div></fieldset><div class="field-row"><label>시작<input id="start-time-input" type="time" name="start_time" required></label><label>종료<input id="end-time-input" type="time" name="end_time" required></label></div></div>
         <div id="one-time-fields" hidden><label>시작<input id="starts-at-input" type="datetime-local" name="starts_at"></label><label>종료<input id="ends-at-input" type="datetime-local" name="ends_at"></label></div>
         <fieldset class="buffer-fields"><legend>일정 전후 버퍼</legend><label>전<input id="before-buffer-input" type="number" name="before_buffer_minutes" min="0" max="720" step="5" value="15">분</label><label>후<input id="after-buffer-input" type="number" name="after_buffer_minutes" min="0" max="720" step="5" value="15">분</label></fieldset>
         <div class="form-actions"><button type="submit" id="save-button">추가</button><button type="button" id="cancel-edit-secondary" class="secondary">취소</button></div>
@@ -78,12 +78,6 @@
         {% if bookmarklet_url %}
           <p class="bookmarklet-instruction">아래 버튼을 북마크바로 드래그하세요.</p>
           <a class="bookmarklet-link bookmarklet-ready" href="{{ bookmarklet_url }}">fill4you</a>
-          <p>또는 수동으로 북마크를 생성하고 링크 칸에 아래 텍스트를 붙여넣기 하세요.</p>
-          <div class="bookmarklet-copy-control">
-            <code id="bookmarklet-url" class="bookmarklet-url">{{ bookmarklet_url }}</code>
-            <button id="copy-bookmarklet-url" type="button" class="secondary">링크 복사</button>
-          </div>
-          <p id="bookmarklet-copy-status" class="bookmarklet-copy-status" role="status" aria-live="polite" hidden>복사됨!</p>
         {% else %}
           <p>현재 등록된 바쁜 시간을 when2meet에 반영할 전용 링크를 만듭니다.</p>
           <form method="post" action="/bookmarklet/tokens"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label>이름<input name="label" maxlength="80" value="fill4you"></label><button type="submit">북마크릿 만들기</button></form>

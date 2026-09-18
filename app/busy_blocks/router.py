@@ -97,7 +97,11 @@ def create_block(
         allow_google=False,
     )
     selected_weekdays = weekdays or [effective_weekday]
-    if schedule_type == "recurring" and source == "timetable" and len(selected_weekdays) > 1:
+    if (
+        schedule_type == "recurring"
+        and source in {"timetable", "manual"}
+        and len(selected_weekdays) > 1
+    ):
         try:
             blocks = [
                 data.model_copy(update={"weekday": selected}) for selected in selected_weekdays
@@ -118,6 +122,7 @@ def update_block(
     title: str = Form(),
     schedule_type: str = Form(),
     weekday: int | None = Form(None),
+    weekdays: list[int] = Form([]),
     start_time: time | None = Form(None),
     end_time: time | None = Form(None),
     starts_at: datetime | None = Form(None),
@@ -131,11 +136,12 @@ def update_block(
     block = service.get_owned(db, user_id, block_id)
     if block is None:
         raise HTTPException(status_code=404, detail="Busy block not found")
+    effective_weekday = weekdays[0] if weekdays else weekday
     data = _to_input(
         source=block.source,
         title=title,
         schedule_type=schedule_type,
-        weekday=weekday,
+        weekday=effective_weekday,
         start_time=start_time,
         end_time=end_time,
         starts_at=starts_at,
@@ -144,7 +150,18 @@ def update_block(
         after_buffer_minutes=after_buffer_minutes,
         allow_google=True,
     )
+    selected_weekdays = weekdays or [effective_weekday]
     service.update(db, block, data, mark_locally_modified=block.source == "google_calendar")
+    if (
+        schedule_type == "recurring"
+        and block.source in {"timetable", "manual"}
+        and len(selected_weekdays) > 1
+    ):
+        service.create_many(
+            db,
+            user_id,
+            [data.model_copy(update={"weekday": selected}) for selected in selected_weekdays[1:]],
+        )
     return RedirectResponse(url="/dashboard", status_code=303)
 
 

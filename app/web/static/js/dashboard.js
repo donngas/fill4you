@@ -38,15 +38,6 @@ function updateEditorVisibility(showForm) {
   if (showForm) everytimeImportForm.hidden = true;
 }
 
-function updateWeekdayFields() {
-  const canSelectMultiple = form.action.endsWith("/blocks")
-    && sourceInput.value === "timetable"
-    && document.querySelector('input[name="schedule_type"]:checked').value === "recurring";
-  document.querySelector("#multiple-weekdays-field").hidden = !canSelectMultiple;
-  document.querySelector("#single-weekday-field").hidden = canSelectMultiple;
-  document.querySelector("#weekday-input").disabled = canSelectMultiple;
-}
-
 function setScheduleType(type) {
   const recurring = type === "recurring";
   recurringFields.hidden = !recurring;
@@ -62,7 +53,6 @@ function resetForm() {
   sourceInput.value = selectedSource;
   document.querySelector('input[name="schedule_type"][value="recurring"]').checked = true;
   setScheduleType("recurring");
-  updateWeekdayFields();
   heading.textContent = selectedSource === "timetable" ? "수동으로 강의 추가" : `${titles[selectedSource]} 추가`;
   showFormButton.textContent = selectedSource === "timetable" ? "수동으로 강의 추가" : `${titles[selectedSource]} 추가`;
   document.querySelector("#save-button").textContent = "추가";
@@ -333,7 +323,8 @@ everytimeImportForm.addEventListener("submit", (event) => {
 });
 cancelEdit.addEventListener("click", resetForm);
 cancelEditSecondary.addEventListener("click", resetForm);
-document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => radio.addEventListener("change", () => { setScheduleType(radio.value); updateWeekdayFields(); }));
+document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => radio.addEventListener("change", () => setScheduleType(radio.value)));
+const weekdayInputs = [...document.querySelectorAll('input[name="weekdays"]')];
 document.querySelectorAll(".source-tab").forEach((tab) => {
   tab.addEventListener("click", () => selectSource(tab.dataset.source));
   tab.addEventListener("keydown", (event) => {
@@ -361,8 +352,7 @@ document.querySelectorAll(".edit-block").forEach((button) => button.addEventList
   document.querySelector("#title-input").value = block.title;
   document.querySelector(`input[name="schedule_type"][value="${block.isRecurring ? "recurring" : "one_time"}"]`).checked = true;
   setScheduleType(block.isRecurring ? "recurring" : "one_time");
-  updateWeekdayFields();
-  document.querySelector("#weekday-input").value = block.weekday ?? 0;
+  weekdayInputs.forEach((input) => { input.checked = Number(input.value) === block.weekday; });
   document.querySelector("#start-time-input").value = block.startTime ?? "";
   document.querySelector("#end-time-input").value = block.endTime ?? "";
   document.querySelector("#starts-at-input").value = block.startsAt ?? "";
@@ -401,29 +391,6 @@ document.querySelector("#google-current-week").addEventListener("click", () => {
 document.querySelector("#open-bookmarklet-setup").addEventListener("click", () => bookmarkletDialog.showModal());
 document.querySelector("#close-bookmarklet-setup").addEventListener("click", () => bookmarkletDialog.close());
 bookmarkletDialog.addEventListener("click", (event) => { if (event.target === bookmarkletDialog) bookmarkletDialog.close(); });
-const copyBookmarkletButton = document.querySelector("#copy-bookmarklet-url");
-if (copyBookmarkletButton) {
-  copyBookmarkletButton.addEventListener("click", async () => {
-    const bookmarkletUrl = document.querySelector("#bookmarklet-url").textContent;
-    const copyStatus = document.querySelector("#bookmarklet-copy-status");
-    try {
-      await navigator.clipboard.writeText(bookmarkletUrl);
-      copyStatus.textContent = "복사됨!";
-    } catch (_) {
-      const input = document.createElement("textarea");
-      input.value = bookmarkletUrl;
-      input.setAttribute("readonly", "");
-      input.style.position = "fixed";
-      input.style.opacity = "0";
-      document.body.append(input);
-      input.select();
-      const copied = document.execCommand("copy");
-      input.remove();
-      copyStatus.textContent = copied ? "복사됨!" : "복사하지 못했습니다. 텍스트를 길게 눌러 복사해 주세요.";
-    }
-    copyStatus.hidden = false;
-  });
-}
 bookmarkletDialog.querySelectorAll('form[method="post"]').forEach((submittedForm) => submittedForm.addEventListener("submit", () => {
   try { sessionStorage.setItem(bookmarkletDialogKey, "open"); } catch (_) { /* Setup still completes without browser storage. */ }
 }));

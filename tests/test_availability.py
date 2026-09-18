@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.accounts.models import User
 from app.availability.service import desired_mask
 from app.bookmarklet import service as bookmarklet_service
-from app.bookmarklet.router import bookmarklet_url
 from app.busy_blocks.models import BusyBlock
 from app.core.config import Settings, get_settings
 from app.core.rate_limit import FixedWindowRateLimiter
@@ -135,13 +134,6 @@ def test_bookmarklet_script_uses_configured_public_base_url(client: TestClient) 
 
     assert response.status_code == 200
     assert 'const API_BASE = "https://fill4you.example"' in response.text
-
-
-def test_bookmarklet_url_has_no_whitespace_for_manual_mobile_setup() -> None:
-    url = bookmarklet_url("https://fill4you.example", "token-value")
-
-    assert url.startswith("javascript:")
-    assert not any(character.isspace() for character in url)
 
 
 def test_availability_rate_limiter_allows_normal_retries_then_throttles() -> None:

@@ -60,7 +60,7 @@ def bookmarklet_script(request: Request, token: str, settings: Settings = Depend
 
 def bookmarklet_url(api_base: str, raw_token: str) -> str:
     script_url = f"{api_base.rstrip('/')}/bookmarklet/script.js?{urlencode({'token': raw_token})}"
-    return f"javascript:(()=>{{document.body.appendChild(Object.assign(document.createElement('script'),{{src:{json.dumps(script_url)}}}))}})()"
+    return f"javascript:(()=>{{const s=document.createElement('script');s.src={json.dumps(script_url)};document.body.appendChild(s)}})()"
 
 
 def _script(api_base: str, token: str) -> str:

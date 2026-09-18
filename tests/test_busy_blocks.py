@@ -123,6 +123,34 @@ def test_creates_one_timetable_block_per_selected_weekday(
     ]
 
 
+def test_creates_one_manual_block_per_selected_weekday(
+    client: TestClient, db_session: Session
+) -> None:
+    csrf_token = _csrf_token(client)
+    client.post("/auth/development", data={"csrf_token": csrf_token})
+
+    response = client.post(
+        "/blocks",
+        data={
+            "source": "manual",
+            "title": "Study group",
+            "schedule_type": "recurring",
+            "weekdays": ["0", "2"],
+            "start_time": "13:00",
+            "end_time": "14:15",
+            "csrf_token": csrf_token,
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    blocks = db_session.query(BusyBlock).order_by(BusyBlock.weekday).all()
+    assert [(block.weekday, block.title, block.source) for block in blocks] == [
+        (0, "Study group", "manual"),
+        (2, "Study group", "manual"),
+    ]
+
+
 def test_resets_only_the_current_users_timetable(client: TestClient, db_session: Session) -> None:
     csrf_token = _csrf_token(client)
     client.post("/auth/development", data={"csrf_token": csrf_token})
