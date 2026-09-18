@@ -32,6 +32,8 @@ def _to_input(
     end_time: time | None,
     starts_at: datetime | None,
     ends_at: datetime | None,
+    before_buffer_minutes: int,
+    after_buffer_minutes: int,
     allow_google: bool,
 ) -> BusyBlockInput:
     if source == "google_calendar" and not allow_google:
@@ -50,6 +52,8 @@ def _to_input(
                 as_seoul_time(starts_at) if starts_at and schedule_type == "one_time" else None
             ),
             ends_at=as_seoul_time(ends_at) if ends_at and schedule_type == "one_time" else None,
+            before_buffer_minutes=before_buffer_minutes,
+            after_buffer_minutes=after_buffer_minutes,
         )
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors()) from error
@@ -66,10 +70,13 @@ def create_block(
     end_time: time | None = Form(None),
     starts_at: datetime | None = Form(None),
     ends_at: datetime | None = Form(None),
+    before_buffer_minutes: int | None = Form(None),
+    after_buffer_minutes: int | None = Form(None),
     db: Session = Depends(get_db),
     _: None = Depends(require_csrf),
 ):
     user_id = _current_user_id(request, db)
+    default_before, default_after = service.buffer_defaults(db, user_id)[source]
     data = _to_input(
         source=source,
         title=title,
@@ -79,6 +86,12 @@ def create_block(
         end_time=end_time,
         starts_at=starts_at,
         ends_at=ends_at,
+        before_buffer_minutes=before_buffer_minutes
+        if before_buffer_minutes is not None
+        else default_before,
+        after_buffer_minutes=after_buffer_minutes
+        if after_buffer_minutes is not None
+        else default_after,
         allow_google=False,
     )
     service.create(db, user_id, data)
@@ -97,6 +110,8 @@ def update_block(
     end_time: time | None = Form(None),
     starts_at: datetime | None = Form(None),
     ends_at: datetime | None = Form(None),
+    before_buffer_minutes: int = Form(15),
+    after_buffer_minutes: int = Form(15),
     db: Session = Depends(get_db),
     _: None = Depends(require_csrf),
 ):
@@ -113,9 +128,37 @@ def update_block(
         end_time=end_time,
         starts_at=starts_at,
         ends_at=ends_at,
+        before_buffer_minutes=before_buffer_minutes,
+        after_buffer_minutes=after_buffer_minutes,
         allow_google=True,
     )
     service.update(db, block, data, mark_locally_modified=block.source == "google_calendar")
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+
+@router.post("/buffers/{source}")
+def update_source_buffers(
+    source: str,
+    request: Request,
+    before_buffer_minutes: int = Form(15),
+    after_buffer_minutes: int = Form(15),
+    apply_existing: bool = Form(False),
+    db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
+):
+    if source not in {"timetable", "manual", "google_calendar"}:
+        raise HTTPException(status_code=404)
+    if not 0 <= before_buffer_minutes <= 720 or not 0 <= after_buffer_minutes <= 720:
+        raise HTTPException(status_code=422, detail="Buffers must be between 0 and 720 minutes")
+    user_id = _current_user_id(request, db)
+    service.update_buffer_defaults(
+        db,
+        user_id,
+        source,
+        before_buffer_minutes,
+        after_buffer_minutes,
+        apply_existing=apply_existing,
+    )
     return RedirectResponse(url="/dashboard", status_code=303)
 
 

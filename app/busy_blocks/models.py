@@ -1,6 +1,16 @@
 from datetime import datetime, time
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, Time, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Time,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -38,7 +48,28 @@ class BusyBlock(Base):
     is_locally_modified: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default="false"
     )
+    before_buffer_minutes: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
+    after_buffer_minutes: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class BusyBlockBufferSetting(Base):
+    __tablename__ = "busy_block_buffer_settings"
+    __table_args__ = (
+        CheckConstraint(
+            "source IN ('timetable', 'manual', 'google_calendar')", name="buffer_settings_source"
+        ),
+        UniqueConstraint("user_id", "source"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str] = mapped_column(String(32))
+    before_buffer_minutes: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
+    after_buffer_minutes: Mapped[int] = mapped_column(Integer, default=15, server_default="15")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

@@ -71,6 +71,8 @@ def _block_for_client(block: BusyBlock) -> dict[str, str | int | bool | None]:
         ),
         "startsAt": starts_at.strftime("%Y-%m-%dT%H:%M") if starts_at else None,
         "endsAt": ends_at.strftime("%Y-%m-%dT%H:%M") if ends_at else None,
+        "beforeBufferMinutes": block.before_buffer_minutes,
+        "afterBufferMinutes": block.after_buffer_minutes,
     }
 
 
@@ -94,6 +96,7 @@ def dashboard(
             "user": user,
             "blocks": blocks,
             "blocks_json": [_block_for_client(block) for block in blocks],
+            "buffer_defaults": busy_block_service.buffer_defaults(db, user.id),
             "week_start": week_start.isoformat(),
             "week_end": (week_start + timedelta(days=6)).isoformat(),
             "bookmarklet_tokens": bookmarklet_service.list_tokens(db, user.id),

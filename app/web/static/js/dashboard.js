@@ -1,4 +1,5 @@
 const blocks = JSON.parse(document.querySelector("#blocks-data").textContent);
+const bufferDefaults = JSON.parse(document.querySelector("#buffer-defaults-data").textContent);
 const dashboard = document.querySelector(".dashboard");
 const form = document.querySelector("#block-form");
 const showFormButton = document.querySelector("#show-block-form");
@@ -14,9 +15,11 @@ const weekLabel = document.querySelector("#week-label");
 const googleWeekLabel = document.querySelector("#google-week-label");
 const calendarStartHourInput = document.querySelector("#calendar-start-hour");
 const calendarEndHourInput = document.querySelector("#calendar-end-hour");
+const calendarScroll = document.querySelector("#calendar-scroll");
 const calendarDescription = document.querySelector("#calendar-description");
 const bookmarkletDialog = document.querySelector("#bookmarklet-dialog");
 const bookmarkletDialogKey = "fill4you.bookmarklet-dialog";
+const dashboardStateKey = "fill4you.dashboard-state";
 const hourHeight = 44;
 const minutesPerHour = 60;
 let firstHour = Number(calendarStartHourInput.value);
@@ -47,6 +50,9 @@ function resetForm() {
   heading.textContent = `${titles[selectedSource]} 추가`;
   showFormButton.textContent = `${titles[selectedSource]} 추가`;
   document.querySelector("#save-button").textContent = "추가";
+  const [beforeBuffer, afterBuffer] = bufferDefaults[selectedSource];
+  document.querySelector("#before-buffer-input").value = beforeBuffer;
+  document.querySelector("#after-buffer-input").value = afterBuffer;
   updateEditorVisibility(false);
 }
 
@@ -65,6 +71,29 @@ function selectSource(source, moveFocus = false) {
   });
   resetForm();
   if (moveFocus) tab.focus();
+}
+
+function saveDashboardState() {
+  try {
+    sessionStorage.setItem(dashboardStateKey, JSON.stringify({
+      source: sourceInput.value,
+      weekStart: formatDate(currentWeekStart),
+      startHour: calendarStartHourInput.value,
+      endHour: calendarEndHourInput.value,
+      calendarScrollLeft: calendarScroll.scrollLeft,
+      pageScrollY: window.scrollY,
+    }));
+  } catch (_) { /* The dashboard remains usable when browser storage is unavailable. */ }
+}
+
+function readDashboardState() {
+  try {
+    const storedState = sessionStorage.getItem(dashboardStateKey);
+    sessionStorage.removeItem(dashboardStateKey);
+    return storedState ? JSON.parse(storedState) : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 function revealBlock(block) {
@@ -103,17 +132,32 @@ function minutesFromTime(value) {
 }
 
 function blockSegmentOnDate(block, date) {
+  const before = block.beforeBufferMinutes || 0;
+  const after = block.afterBufferMinutes || 0;
   if (block.isRecurring) {
-    if (block.weekday !== (date.getDay() + 6) % 7) return null;
-    return { start: minutesFromTime(block.startTime), end: minutesFromTime(block.endTime) };
+    for (const dayOffset of [-1, 0, 1]) {
+      const blockDate = addDays(date, dayOffset);
+      if (block.weekday !== (blockDate.getDay() + 6) % 7) continue;
+      const actualStart = dayOffset * 24 * minutesPerHour + minutesFromTime(block.startTime);
+      const actualEnd = dayOffset * 24 * minutesPerHour + minutesFromTime(block.endTime);
+      const start = actualStart - before;
+      const end = actualEnd + after;
+      if (start < 24 * minutesPerHour && end > 0) return { start, end, actualStart, actualEnd };
+    }
+    return null;
   }
-  const dateValue = formatDate(date);
-  const startDate = block.startsAt.slice(0, 10);
-  const endDate = block.endsAt.slice(0, 10);
-  if (dateValue < startDate || dateValue > endDate) return null;
-  const start = dateValue === startDate ? minutesFromTime(block.startsAt.slice(11)) : 0;
-  const end = dateValue === endDate ? minutesFromTime(block.endsAt.slice(11)) : 24 * minutesPerHour;
-  return start < end ? { start, end } : null;
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const eventStart = new Date(block.startsAt);
+  const eventEnd = new Date(block.endsAt);
+  const bufferedStart = new Date(eventStart);
+  const bufferedEnd = new Date(eventEnd);
+  bufferedStart.setMinutes(bufferedStart.getMinutes() - before);
+  bufferedEnd.setMinutes(bufferedEnd.getMinutes() + after);
+  const start = Math.round((bufferedStart - dayStart) / 60000);
+  const end = Math.round((bufferedEnd - dayStart) / 60000);
+  const actualStart = Math.round((eventStart - dayStart) / 60000);
+  const actualEnd = Math.round((eventEnd - dayStart) / 60000);
+  return start < end ? { start, end, actualStart, actualEnd } : null;
 }
 
 function sourceLabel(source) {
@@ -154,24 +198,37 @@ function layoutSegments(segments) {
 
 function describeBlock(block, date, segment) {
   const dateText = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "long" }).format(date);
-  const startsAt = segment.fullStart ?? segment.start;
-  const endsAt = segment.fullEnd ?? segment.end;
+  const startsAt = segment.fullActualStart ?? segment.actualStart;
+  const endsAt = segment.fullActualEnd ?? segment.actualEnd;
   const starts = `${String(Math.floor(startsAt / 60)).padStart(2, "0")}:${String(startsAt % 60).padStart(2, "0")}`;
   const ends = `${String(Math.floor(endsAt / 60)).padStart(2, "0")}:${String(endsAt % 60).padStart(2, "0")}`;
-  return `${block.title}, ${sourceLabel(block.source)}, ${dateText} ${starts}–${ends}`;
+  return `${block.title}, ${sourceLabel(block.source)}, ${dateText} ${starts}–${ends}, 버퍼 전 ${block.beforeBufferMinutes}분 후 ${block.afterBufferMinutes}분`;
+}
+
+function applyBlockGeometry(item, dayIndex, column, columns, start, end) {
+  item.style.left = `calc(4rem + ${dayIndex} * ((100% - 4rem) / 7) + ${column} * ((100% - 4rem) / 7 / ${columns}) + 3px)`;
+  item.style.width = `calc((100% - 4rem) / 7 / ${columns} - 6px)`;
+  item.style.top = `calc(44px + ${(start - firstHour * minutesPerHour) * (hourHeight / minutesPerHour)}px + 2px)`;
+  item.style.height = `${Math.max((end - start) * (hourHeight / minutesPerHour) - 4, 6)}px`;
 }
 
 function renderBlock(segment, dayIndex) {
-  const { block, date, start, end, column, columns } = segment;
+  const { block, date, start, end, actualStart, actualEnd, column, columns } = segment;
+  const buffer = document.createElement("div");
+  buffer.className = "preview-buffer";
+  buffer.setAttribute("aria-hidden", "true");
+  applyBlockGeometry(buffer, dayIndex, column, columns, start, end);
+  grid.append(buffer);
+  const visibleActualStart = Math.max(actualStart, firstHour * minutesPerHour);
+  const visibleActualEnd = Math.min(actualEnd, lastHour * minutesPerHour);
+  if (visibleActualStart >= visibleActualEnd) return;
   const item = document.createElement("button");
   item.type = "button";
   item.className = `preview-block source-${block.source}`;
   item.textContent = block.title;
   item.setAttribute("aria-label", describeBlock(block, date, segment));
-  item.style.left = `calc(4rem + ${dayIndex} * ((100% - 4rem) / 7) + ${column} * ((100% - 4rem) / 7 / ${columns}) + 3px)`;
-  item.style.width = `calc((100% - 4rem) / 7 / ${columns} - 6px)`;
-  item.style.top = `calc(44px + ${(start - firstHour * minutesPerHour) * (hourHeight / minutesPerHour)}px + 2px)`;
-  item.style.height = `${Math.max((end - start) * (hourHeight / minutesPerHour) - 4, 24)}px`;
+  applyBlockGeometry(item, dayIndex, column, columns, visibleActualStart, visibleActualEnd);
+  item.style.minHeight = "24px";
   item.addEventListener("click", () => {
     calendarDescription.textContent = describeBlock(block, date, segment);
     revealBlock(block);
@@ -203,7 +260,11 @@ function renderCalendar() {
       if (!interval) return null;
       const start = Math.max(interval.start, firstHour * minutesPerHour);
       const end = Math.min(interval.end, lastHour * minutesPerHour);
-      return start < end ? { block, date, start, end, fullStart: interval.start, fullEnd: interval.end } : null;
+      return start < end ? {
+        block, date, start, end,
+        actualStart: interval.actualStart, actualEnd: interval.actualEnd,
+        fullActualStart: interval.actualStart, fullActualEnd: interval.actualEnd,
+      } : null;
     }).filter(Boolean);
     layoutSegments(segments).forEach((segment) => renderBlock(segment, index));
   });
@@ -242,6 +303,14 @@ document.querySelectorAll(".source-tab").forEach((tab) => {
     selectSource(next.dataset.source, true);
   });
 });
+document.querySelectorAll(".buffer-settings-toggle").forEach((button) => {
+  button.addEventListener("click", () => {
+    const form = document.querySelector(`#${button.getAttribute("aria-controls")}`);
+    const isOpen = !form.hidden;
+    form.hidden = isOpen;
+    button.setAttribute("aria-expanded", String(!isOpen));
+  });
+});
 document.querySelectorAll(".edit-block").forEach((button) => button.addEventListener("click", () => {
   const block = blocks.find((item) => item.id === Number(button.dataset.blockId));
   sourceInput.value = block.source;
@@ -255,6 +324,8 @@ document.querySelectorAll(".edit-block").forEach((button) => button.addEventList
   document.querySelector("#end-time-input").value = block.endTime ?? "";
   document.querySelector("#starts-at-input").value = block.startsAt ?? "";
   document.querySelector("#ends-at-input").value = block.endsAt ?? "";
+  document.querySelector("#before-buffer-input").value = block.beforeBufferMinutes;
+  document.querySelector("#after-buffer-input").value = block.afterBufferMinutes;
   heading.textContent = `${titles[block.source]} 수정`;
   document.querySelector("#save-button").textContent = "저장";
   document.querySelector("#title-input").focus();
@@ -296,4 +367,19 @@ try {
     bookmarkletDialog.showModal();
   }
 } catch (_) { /* The dialog remains available through its header action. */ }
+document.querySelectorAll('form[method="post"]').forEach((submittedForm) => submittedForm.addEventListener("submit", () => {
+  if (new URL(submittedForm.action, window.location.href).pathname !== "/auth/logout") saveDashboardState();
+}));
+const restoredState = readDashboardState();
+if (restoredState?.weekStart) currentWeekStart = parseDate(restoredState.weekStart);
+if (restoredState?.startHour && restoredState?.endHour) {
+  calendarStartHourInput.value = restoredState.startHour;
+  calendarEndHourInput.value = restoredState.endHour;
+  updateCalendarHours(calendarStartHourInput);
+}
+if (restoredState?.source) selectSource(restoredState.source);
 updateWeek();
+if (restoredState) {
+  calendarScroll.scrollLeft = Number(restoredState.calendarScrollLeft) || 0;
+  requestAnimationFrame(() => window.scrollTo(0, Number(restoredState.pageScrollY) || 0));
+}

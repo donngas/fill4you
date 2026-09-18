@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.busy_blocks.models import BusyBlock
+from app.busy_blocks.service import buffer_defaults
 from app.core.config import Settings
 from app.google_calendar.models import GoogleCalendar, GoogleCalendarEventState, GoogleOAuthToken
 from app.shared.time import SEOUL, as_seoul_time
@@ -290,6 +291,7 @@ def sync_for_user(
         )
     }
     result = SyncResult()
+    google_before_buffer, google_after_buffer = buffer_defaults(db, user_id)["google_calendar"]
     for event in events:
         external_id = event["external_event_id"]
         state = states.get(external_id)
@@ -307,6 +309,8 @@ def sync_for_user(
                     ends_at=event["ends_at"],
                     external_event_id=external_id,
                     is_locally_modified=False,
+                    before_buffer_minutes=google_before_buffer,
+                    after_buffer_minutes=google_after_buffer,
                 )
             )
             result = SyncResult(

@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.busy_blocks.models import BusyBlock
+from app.busy_blocks.models import BusyBlock, BusyBlockBufferSetting
 from app.busy_blocks.schemas import BusyBlockInput
 
 
@@ -21,6 +21,43 @@ def create(db: Session, user_id: int, data: BusyBlockInput) -> BusyBlock:
     db.commit()
     db.refresh(block)
     return block
+
+
+def buffer_defaults(db: Session, user_id: int) -> dict[str, tuple[int, int]]:
+    defaults = {source: (15, 15) for source in ("timetable", "manual", "google_calendar")}
+    for setting in db.scalars(
+        select(BusyBlockBufferSetting).where(BusyBlockBufferSetting.user_id == user_id)
+    ):
+        defaults[setting.source] = (setting.before_buffer_minutes, setting.after_buffer_minutes)
+    return defaults
+
+
+def update_buffer_defaults(
+    db: Session,
+    user_id: int,
+    source: str,
+    before_minutes: int,
+    after_minutes: int,
+    *,
+    apply_existing: bool,
+) -> None:
+    setting = db.scalar(
+        select(BusyBlockBufferSetting).where(
+            BusyBlockBufferSetting.user_id == user_id, BusyBlockBufferSetting.source == source
+        )
+    )
+    if setting is None:
+        setting = BusyBlockBufferSetting(user_id=user_id, source=source)
+        db.add(setting)
+    setting.before_buffer_minutes = before_minutes
+    setting.after_buffer_minutes = after_minutes
+    if apply_existing:
+        for block in db.scalars(
+            select(BusyBlock).where(BusyBlock.user_id == user_id, BusyBlock.source == source)
+        ):
+            block.before_buffer_minutes = before_minutes
+            block.after_buffer_minutes = after_minutes
+    db.commit()
 
 
 def update(
