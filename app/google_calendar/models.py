@@ -31,3 +31,18 @@ class GoogleCalendarEventState(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class GoogleCalendar(Base):
+    __tablename__ = "google_calendars"
+    __table_args__ = (UniqueConstraint("user_id", "external_calendar_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    external_calendar_id: Mapped[str] = mapped_column(String(1024), nullable=False)
+    title: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_primary: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    is_selected: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

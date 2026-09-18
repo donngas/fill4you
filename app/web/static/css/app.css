@@ -55,6 +55,8 @@ fieldset input { width: auto; }
 .hour-cell { height: 56px; border-top: 1px solid #edf0f4; border-left: 1px solid #edf0f4; }
 .preview-block { position: absolute; z-index: 1; width: calc(8rem - .5rem); padding: .25rem; overflow: hidden; border-radius: .25rem; background: #cddaff; color: #152664; font-size: .7rem; }
 .source-manual { background: #d8f1df; color: #185c2a; }.source-google_calendar { background: #fce2bd; color: #7c4200; }
+.calendar-selection { display: grid; gap: .5rem; margin: .75rem 0; }
+.calendar-selection fieldset { display: grid; gap: .35rem; }
 .load-more-panel { display: grid; align-content: start; justify-items: center; gap: .5rem; width: 7rem; padding: .75rem; border-left: 1px solid #edf0f4; }
 .load-more-button { padding: .25rem; background: transparent; color: #315efb; font-size: .85rem; }
 @media (max-width: 48rem) { .dashboard-layout { grid-template-columns: 1fr; }.dashboard { width: min(100% - 2rem, 76rem); } }
