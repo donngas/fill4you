@@ -55,7 +55,12 @@ def test_import_rejects_images_larger_than_20_mebibytes(
     monkeypatch.setattr(everytime_router, "MAX_IMAGE_BYTES", 5)
     home = client.get("/")
     csrf_token = re.search(r'name="csrf_token" value="([^"]+)"', home.text).group(1)
-    assert client.post("/auth/development", data={"csrf_token": csrf_token}).status_code == 303
+    assert (
+        client.post(
+            "/auth/development", data={"csrf_token": csrf_token}, follow_redirects=False
+        ).status_code
+        == 303
+    )
 
     response = client.post(
         "/everytime/import",
@@ -65,3 +70,44 @@ def test_import_rejects_images_larger_than_20_mebibytes(
 
     assert response.status_code == 413
     assert "20MB" in response.json()["detail"]
+
+
+def test_import_confirmation_returns_controlled_error_for_invalid_class_time(
+    client: TestClient,
+) -> None:
+    home = client.get("/")
+    csrf_token = re.search(r'name="csrf_token" value="([^"]+)"', home.text).group(1)
+    client.post("/auth/development", data={"csrf_token": csrf_token}, follow_redirects=False)
+
+    response = client.post(
+        "/everytime/import/confirm",
+        data={
+            "csrf_token": csrf_token,
+            "titles": "Algorithms",
+            "weekdays": "0",
+            "start_times": "10:00",
+            "end_times": "10:00",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "강의의 시작과 종료 시간은 같을 수 없습니다." in response.text
+    assert 'value="Algorithms"' in response.text
+
+
+def test_import_confirmation_returns_controlled_error_for_incomplete_preview(
+    client: TestClient,
+) -> None:
+    home = client.get("/")
+    csrf_token = re.search(r'name="csrf_token" value="([^"]+)"', home.text).group(1)
+    client.post("/auth/development", data={"csrf_token": csrf_token}, follow_redirects=False)
+
+    response = client.post(
+        "/everytime/import/confirm",
+        data={"csrf_token": csrf_token, "titles": "Algorithms"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    dashboard = client.get("/dashboard")
+    assert "시간표 미리보기 정보가 완전하지 않습니다." in dashboard.text

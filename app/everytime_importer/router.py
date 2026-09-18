@@ -12,6 +12,7 @@ from app.busy_blocks.schemas import BusyBlockInput
 from app.core.csrf import get_csrf_token, require_csrf
 from app.core.database import get_db
 from app.everytime_importer.ocr import paddle_korean_title_reader
+from app.everytime_importer.schemas import EverytimeImportBlock, TimetableImportPreview
 from app.everytime_importer.service import EverytimeParseError, parse_everytime_image
 from app.web.router import templates
 
@@ -28,6 +29,41 @@ def _current_user_id(request: Request, db: Session) -> int:
     if user is None:
         raise HTTPException(status_code=401, detail="Sign-in required")
     return user.id
+
+
+def _import_preview_from_form(
+    titles: list[str], weekdays: list[int], start_times: list[time], end_times: list[time]
+) -> TimetableImportPreview:
+    return TimetableImportPreview(
+        adapter="everytime-import-confirmation",
+        blocks=tuple(
+            EverytimeImportBlock(
+                title=title,
+                weekday=weekday,
+                start_time=start_time,
+                end_time=end_time,
+                geometry_confidence=1.0,
+            )
+            for title, weekday, start_time, end_time in zip(
+                titles, weekdays, start_times, end_times, strict=True
+            )
+        ),
+        warnings=(),
+    )
+
+
+def _import_validation_message(error: ValidationError) -> str:
+    message = error.errors()[0]["msg"].removeprefix("Value error, ")
+    messages = {
+        "A title is required": "강의명을 입력해 주세요.",
+        "A recurring block needs a weekday, start time, and end time": (
+            "강의의 요일과 시작·종료 시간을 입력해 주세요."
+        ),
+        "A recurring block cannot start and end at the same time": (
+            "강의의 시작과 종료 시간은 같을 수 없습니다."
+        ),
+    }
+    return messages.get(message, "시간표 항목을 확인해 주세요.")
 
 
 @router.post("/import")
@@ -74,16 +110,19 @@ async def preview_import(
 def confirm_import(
     request: Request,
     replace_timetable: bool = Form(False),
-    titles: list[str] = Form(),
-    weekdays: list[int] = Form(),
-    start_times: list[time] = Form(),
-    end_times: list[time] = Form(),
+    titles: list[str] = Form([]),
+    weekdays: list[int] = Form([]),
+    start_times: list[time] = Form([]),
+    end_times: list[time] = Form([]),
     db: Session = Depends(get_db),
     _: None = Depends(require_csrf),
 ):
     user_id = _current_user_id(request, db)
     if not titles or len({len(titles), len(weekdays), len(start_times), len(end_times)}) != 1:
-        raise HTTPException(status_code=422, detail="The import preview data is incomplete")
+        request.session["block_form_error"] = (
+            "시간표 미리보기 정보가 완전하지 않습니다. 이미지를 다시 불러와 주세요."
+        )
+        return RedirectResponse(url="/dashboard", status_code=303)
     defaults = busy_block_service.buffer_defaults(db, user_id)["timetable"]
     try:
         blocks = [
@@ -102,7 +141,16 @@ def confirm_import(
             )
         ]
     except ValidationError as error:
-        raise HTTPException(status_code=422, detail=error.errors()) from error
+        return templates.TemplateResponse(
+            request,
+            "everytime_import_preview.html",
+            {
+                "preview": _import_preview_from_form(titles, weekdays, start_times, end_times),
+                "csrf_token": get_csrf_token(request),
+                "form_error": _import_validation_message(error),
+            },
+            status_code=422,
+        )
     if replace_timetable:
         busy_block_service.replace_source(db, user_id, "timetable", blocks)
     else:

@@ -3,6 +3,7 @@
 <main class="import-preview-page">
   <h1>에브리타임 시간표 확인</h1>
   <p>인식한 강의명을 확인하고 필요하면 수정하세요.</p>
+  {% if form_error %}<p class="notice" role="alert">{{ form_error }}</p>{% endif %}
   {% if preview.warnings %}{% for warning in preview.warnings %}<p class="notice">{{ warning }}</p>{% endfor %}{% endif %}
   <form method="post" action="/everytime/import/confirm" class="import-preview-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
