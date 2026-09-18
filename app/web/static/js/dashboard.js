@@ -104,9 +104,23 @@ function createDates(startDate, count) {
   });
 }
 
-function blockOccursOnDate(block, date) {
-  if (block.isRecurring) return block.weekday === (date.getDay() + 6) % 7;
-  return block.startsAt.slice(0, 10) === formatDate(date);
+function minutesFromTime(value) {
+  const [hour, minute] = value.slice(0, 5).split(":").map(Number);
+  return hour * minutesPerHour + minute;
+}
+
+function blockSegmentOnDate(block, date) {
+  if (block.isRecurring) {
+    if (block.weekday !== (date.getDay() + 6) % 7) return null;
+    return { start: minutesFromTime(block.startTime), end: minutesFromTime(block.endTime) };
+  }
+  const dateValue = formatDate(date);
+  const startDate = block.startsAt.slice(0, 10);
+  const endDate = block.endsAt.slice(0, 10);
+  if (dateValue < startDate || dateValue > endDate) return null;
+  const start = dateValue === startDate ? minutesFromTime(block.startsAt.slice(11)) : 0;
+  const end = dateValue === endDate ? minutesFromTime(block.endsAt.slice(11)) : 24 * minutesPerHour;
+  return start < end ? { start, end } : null;
 }
 
 function renderCalendar() {
@@ -123,24 +137,27 @@ function renderCalendar() {
     grid.insertAdjacentHTML("beforeend", `<div class="hour-label" style="grid-row:${row}">${String(hour).padStart(2, "0")}:00</div>${cells}`);
   }
   dates.forEach((date, index) => {
-    blocks.filter((block) => blockOccursOnDate(block, date)).forEach((block) => renderBlock(block, index));
+    blocks.forEach((block) => {
+      const segment = blockSegmentOnDate(block, date);
+      if (segment) renderBlock(block, index, segment);
+    });
   });
   const canCollapse = dates.length > 14;
   collapseTwoWeeksButton.disabled = !canCollapse;
   collapseAllDatesButton.disabled = !canCollapse;
 }
 
-function renderBlock(block, dayIndex) {
-  const [startHourValue, startMinute] = block.startTime.split(":").map(Number);
-  const [endHourValue, endMinute] = block.endTime.split(":").map(Number);
-  const start = (startHourValue - startHour) * minutesPerHour + startMinute;
-  const duration = (endHourValue * minutesPerHour + endMinute) - (startHourValue * minutesPerHour + startMinute);
-  if (start < 0 || start >= (endHour - startHour) * minutesPerHour || duration <= 0) return;
+function renderBlock(block, dayIndex, segment) {
+  const visibleStart = startHour * minutesPerHour;
+  const visibleEnd = endHour * minutesPerHour;
+  const start = Math.max(segment.start, visibleStart);
+  const end = Math.min(segment.end, visibleEnd);
+  if (start >= end) return;
   const item = document.createElement("div");
   item.className = `preview-block source-${block.source}`;
   item.style.left = `calc(4rem + ${dayIndex} * 8rem + .25rem)`;
-  item.style.top = `calc(2.75rem + ${start * (hourHeight / minutesPerHour)}px)`;
-  item.style.height = `${Math.min(duration, (endHour - startHour) * minutesPerHour - start) * (hourHeight / minutesPerHour)}px`;
+  item.style.top = `calc(2.75rem + ${(start - visibleStart) * (hourHeight / minutesPerHour)}px)`;
+  item.style.height = `${(end - start) * (hourHeight / minutesPerHour)}px`;
   item.textContent = block.title;
   grid.append(item);
 }

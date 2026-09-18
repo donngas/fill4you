@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.14",
     "authlib>=1.4",
+    "cryptography>=43.0",
     "fastapi>=0.115",
     "httpx>=0.28",
     "itsdangerous>=2.2",

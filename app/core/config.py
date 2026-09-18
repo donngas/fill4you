@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     google_client_id: str | None = None
     google_client_secret: str | None = None
     google_redirect_uri: str = "http://localhost:8000/auth/google/callback"
+    google_token_encryption_key: str | None = None
+    google_sync_past_days: int = 7
+    google_sync_future_days: int = 90
+    google_sync_interval_minutes: int = 15
     session_cookie_name: str = "fill4you_session"
     session_cookie_domain: str | None = None
     session_same_site: str = "lax"
@@ -48,6 +52,15 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_empty_cookie_domain(cls, value: str | None) -> str | None:
         return value or None
+
+    @field_validator(
+        "google_sync_past_days", "google_sync_future_days", "google_sync_interval_minutes"
+    )
+    @classmethod
+    def validate_positive_google_sync_value(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("Google Calendar sync values must be at least 1")
+        return value
 
     @model_validator(mode="after")
     def require_secure_production_session_secret(self) -> "Settings":
@@ -82,6 +95,10 @@ class Settings(BaseSettings):
     @property
     def google_oauth_configured(self) -> bool:
         return bool(self.google_client_id and self.google_client_secret)
+
+    @property
+    def google_calendar_configured(self) -> bool:
+        return bool(self.google_oauth_configured and self.google_token_encryption_key)
 
 
 @lru_cache

@@ -23,9 +23,13 @@ def create(db: Session, user_id: int, data: BusyBlockInput) -> BusyBlock:
     return block
 
 
-def update(db: Session, block: BusyBlock, data: BusyBlockInput) -> BusyBlock:
+def update(
+    db: Session, block: BusyBlock, data: BusyBlockInput, *, mark_locally_modified: bool = False
+) -> BusyBlock:
     for field, value in data.model_dump().items():
         setattr(block, field, value)
+    if mark_locally_modified:
+        block.is_locally_modified = True
     db.commit()
     db.refresh(block)
     return block

@@ -112,7 +112,7 @@ def update_block(
         ends_at=ends_at,
         allow_google=True,
     )
-    service.update(db, block, data)
+    service.update(db, block, data, mark_locally_modified=block.source == "google_calendar")
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
@@ -122,5 +122,9 @@ def delete_block(block_id: int, request: Request, db: Session = Depends(get_db))
     block = service.get_owned(db, user_id, block_id)
     if block is None:
         raise HTTPException(status_code=404, detail="Busy block not found")
+    if block.source == "google_calendar" and block.external_event_id:
+        from app.google_calendar import service as google_calendar_service
+
+        google_calendar_service.exclude_event(db, user_id, block.external_event_id)
     service.delete(db, block)
     return RedirectResponse(url="/dashboard", status_code=303)
