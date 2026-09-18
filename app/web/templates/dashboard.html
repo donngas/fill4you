@@ -18,14 +18,22 @@
         <button type="button" class="source-tab" id="google-calendar-tab" role="tab" aria-selected="false" aria-controls="google-calendar-panel" data-source="google_calendar" tabindex="-1">구글 캘린더</button>
       </nav>
 
-      <button id="show-block-form" type="button" class="add-block-button">시간표 추가</button>
+      <div id="timetable-actions" class="timetable-actions">
+        <button id="show-everytime-import" type="button" class="everytime-import-button">에브리타임 이미지 불러오기</button>
+        <button id="show-block-form" type="button" class="add-block-button">수동으로 강의 추가</button>
+      </div>
+      <form id="everytime-import-form" class="everytime-import-form" method="post" action="/everytime/import" enctype="multipart/form-data" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>에브리타임 내보내기 이미지<input type="file" name="image" accept="image/jpeg,image/png" required></label>
+        <div class="form-actions"><button type="submit">이미지 분석하기</button><button type="button" id="cancel-everytime-import" class="secondary">취소</button></div>
+      </form>
       <form id="block-form" class="block-form" method="post" action="/blocks" hidden>
         <input id="source-input" type="hidden" name="source" value="timetable">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div class="form-heading"><h2 id="form-heading">시간표 추가</h2><button type="button" id="cancel-edit" class="text-button">닫기</button></div>
         <label>일정 이름<input id="title-input" name="title" required maxlength="255" placeholder="예: 알고리즘"></label>
         <fieldset><legend>일정 종류</legend><label><input type="radio" name="schedule_type" value="recurring" checked> 매주 반복</label><label><input type="radio" name="schedule_type" value="one_time"> 한 번만</label></fieldset>
-        <div id="recurring-fields"><label>요일<select id="weekday-input" name="weekday"><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option><option value="5">토요일</option><option value="6">일요일</option></select></label><div class="field-row"><label>시작<input id="start-time-input" type="time" name="start_time" required></label><label>종료<input id="end-time-input" type="time" name="end_time" required></label></div></div>
+        <div id="recurring-fields"><label id="single-weekday-field">요일<select id="weekday-input" name="weekday"><option value="0">월요일</option><option value="1">화요일</option><option value="2">수요일</option><option value="3">목요일</option><option value="4">금요일</option><option value="5">토요일</option><option value="6">일요일</option></select></label><fieldset id="multiple-weekdays-field" hidden><legend>요일 (복수 선택 가능)</legend>{% for index, label in [(0, "월"), (1, "화"), (2, "수"), (3, "목"), (4, "금"), (5, "토"), (6, "일")] %}<label><input type="checkbox" name="weekdays" value="{{ index }}"> {{ label }}</label>{% endfor %}</fieldset><div class="field-row"><label>시작<input id="start-time-input" type="time" name="start_time" required></label><label>종료<input id="end-time-input" type="time" name="end_time" required></label></div></div>
         <div id="one-time-fields" hidden><label>시작<input id="starts-at-input" type="datetime-local" name="starts_at"></label><label>종료<input id="ends-at-input" type="datetime-local" name="ends_at"></label></div>
         <fieldset class="buffer-fields"><legend>일정 전후 버퍼</legend><label>전<input id="before-buffer-input" type="number" name="before_buffer_minutes" min="0" max="720" step="5" value="15">분</label><label>후<input id="after-buffer-input" type="number" name="after_buffer_minutes" min="0" max="720" step="5" value="15">분</label></fieldset>
         <div class="form-actions"><button type="submit" id="save-button">추가</button><button type="button" id="cancel-edit-secondary" class="secondary">취소</button></div>

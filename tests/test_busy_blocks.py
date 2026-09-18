@@ -95,6 +95,34 @@ def test_busy_block_crud_is_authenticated_and_owned(
     assert forbidden.status_code == 404
 
 
+def test_creates_one_timetable_block_per_selected_weekday(
+    client: TestClient, db_session: Session
+) -> None:
+    csrf_token = _csrf_token(client)
+    client.post("/auth/development", data={"csrf_token": csrf_token})
+
+    response = client.post(
+        "/blocks",
+        data={
+            "source": "timetable",
+            "title": "Algorithms",
+            "schedule_type": "recurring",
+            "weekdays": ["1", "3"],
+            "start_time": "13:00",
+            "end_time": "14:15",
+            "csrf_token": csrf_token,
+        },
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    blocks = db_session.query(BusyBlock).order_by(BusyBlock.weekday).all()
+    assert [(block.weekday, block.title) for block in blocks] == [
+        (1, "Algorithms"),
+        (3, "Algorithms"),
+    ]
+
+
 def test_form_actions_require_a_valid_csrf_token(client: TestClient) -> None:
     rejected = client.post("/auth/development")
     assert rejected.status_code == 403

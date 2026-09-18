@@ -15,6 +15,7 @@ from app.bookmarklet.router import router as bookmarklet_router
 from app.busy_blocks.router import router as busy_blocks_router
 from app.core.config import get_settings
 from app.core.database import SessionLocal
+from app.everytime_importer.router import router as everytime_importer_router
 from app.google_calendar import service as google_calendar_service
 from app.google_calendar.router import router as google_calendar_router
 from app.web.router import router as web_router
@@ -83,6 +84,7 @@ app.include_router(busy_blocks_router)
 app.include_router(availability_router)
 app.include_router(bookmarklet_router)
 app.include_router(google_calendar_router)
+app.include_router(everytime_importer_router)
 
 
 @app.get("/health")

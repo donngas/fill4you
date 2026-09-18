@@ -23,6 +23,29 @@ def create(db: Session, user_id: int, data: BusyBlockInput) -> BusyBlock:
     return block
 
 
+def create_many(db: Session, user_id: int, data: list[BusyBlockInput]) -> list[BusyBlock]:
+    """Create related blocks in one transaction (for a class held on several weekdays)."""
+    blocks = [BusyBlock(user_id=user_id, **item.model_dump()) for item in data]
+    db.add_all(blocks)
+    db.commit()
+    for block in blocks:
+        db.refresh(block)
+    return blocks
+
+
+def replace_source(
+    db: Session, user_id: int, source: str, data: list[BusyBlockInput]
+) -> list[BusyBlock]:
+    """Atomically replace a source after an explicitly confirmed import."""
+    statement = select(BusyBlock).where(BusyBlock.user_id == user_id, BusyBlock.source == source)
+    for block in db.scalars(statement):
+        db.delete(block)
+    blocks = [BusyBlock(user_id=user_id, **item.model_dump()) for item in data]
+    db.add_all(blocks)
+    db.commit()
+    return blocks
+
+
 def buffer_defaults(db: Session, user_id: int) -> dict[str, tuple[int, int]]:
     defaults = {source: (15, 15) for source in ("timetable", "manual", "google_calendar")}
     for setting in db.scalars(

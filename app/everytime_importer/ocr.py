@@ -68,7 +68,9 @@ def paddle_korean_title_reader(model_root: Path | None = None) -> TitleReader:
 
 def _configured_model_root() -> Path | None:
     value = os.environ.get("FILL4YOU_PADDLEOCR_MODELS")
-    return Path(value) if value else None
+    # Containers commonly run as a read-only non-root user.  Avoid PaddleOCR's default ~/.paddleocr
+    # cache so a first import can initialise its local model cache successfully.
+    return Path(value) if value else Path("/tmp/fill4you-paddle")
 
 
 def _looks_like_location(text: str) -> bool:
