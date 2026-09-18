@@ -8,6 +8,7 @@ services:
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
     environment:
+      APP_NAME: ${APP_NAME:-fill4you}
       APP_ENV: ${APP_ENV:-development}
       POSTGRES_DB: ${POSTGRES_DB:-fill4you}
       POSTGRES_USER: ${POSTGRES_USER:-fill4you}
@@ -27,6 +28,7 @@ services:
       APP_PORT: ${APP_PORT:-8000}
       APP_WORKERS: ${APP_WORKERS:-1}
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-info}
+      DEVELOPMENT_USER_EMAIL: ${DEVELOPMENT_USER_EMAIL:-developer@fill4you.local}
     depends_on:
       db:
         condition: service_healthy

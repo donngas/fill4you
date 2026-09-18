@@ -30,3 +30,17 @@ def test_database_url_is_built_from_postgres_settings() -> None:
     assert settings.database_url.host == "postgres.example"
     assert settings.database_url.port == 5433
     assert settings.database_url.database == "schedule"
+
+
+def test_environment_variables_override_development_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_NAME", "fill4you-test")
+    monkeypatch.setenv("APP_PORT", "9010")
+    monkeypatch.setenv("POSTGRES_HOST", "test-db")
+
+    settings = Settings()
+
+    assert settings.app_name == "fill4you-test"
+    assert settings.app_port == 9010
+    assert settings.postgres_host == "test-db"

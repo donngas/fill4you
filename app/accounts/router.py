@@ -68,7 +68,7 @@ def development_login(
 ):
     if not settings.development_login_enabled:
         raise HTTPException(status_code=404)
-    user = get_or_create_development_user(db)
+    user = get_or_create_development_user(db, settings.development_user_email)
     request.session["user_id"] = user.id
     return RedirectResponse(url="/", status_code=303)
 

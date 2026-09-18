@@ -1,8 +1,14 @@
 from functools import lru_cache
+from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
+
+ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+# Load local development configuration without overriding actual process environment values.
+load_dotenv(ENV_FILE, override=False)
 
 
 class Settings(BaseSettings):
@@ -26,8 +32,9 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_workers: int = 1
     app_log_level: str = "info"
+    development_user_email: str = "developer@fill4you.local"
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
 
     @field_validator("app_env")
     @classmethod
