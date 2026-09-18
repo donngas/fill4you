@@ -183,30 +183,32 @@ function sourceLabel(source) {
 }
 
 function layoutSegments(segments) {
-  const sorted = [...segments].sort((a, b) => a.start - b.start || b.end - a.end);
+  // Buffers make an interval look larger, but should not force two otherwise separate classes
+  // into side-by-side columns.  Only actual class-time conflicts consume another column.
+  const sorted = [...segments].sort((a, b) => a.actualStart - b.actualStart || b.actualEnd - a.actualEnd);
   const clusters = [];
   let cluster = [];
   let clusterEnd = -1;
   sorted.forEach((segment) => {
-    if (cluster.length && segment.start >= clusterEnd) {
+    if (cluster.length && segment.actualStart >= clusterEnd) {
       clusters.push(cluster);
       cluster = [];
       clusterEnd = -1;
     }
     cluster.push(segment);
-    clusterEnd = Math.max(clusterEnd, segment.end);
+    clusterEnd = Math.max(clusterEnd, segment.actualEnd);
   });
   if (cluster.length) clusters.push(cluster);
 
   return clusters.flatMap((cluster) => {
     const columns = [];
     cluster.forEach((segment) => {
-      let column = columns.findIndex((columnEnd) => columnEnd <= segment.start);
+      let column = columns.findIndex((columnEnd) => columnEnd <= segment.actualStart);
       if (column === -1) {
         column = columns.length;
-        columns.push(segment.end);
+        columns.push(segment.actualEnd);
       } else {
-        columns[column] = segment.end;
+        columns[column] = segment.actualEnd;
       }
       segment.column = column;
     });
@@ -315,6 +317,13 @@ showEverytimeImportButton.addEventListener("click", () => {
 document.querySelector("#cancel-everytime-import").addEventListener("click", () => {
   everytimeImportForm.hidden = true;
   updateEditorVisibility(false);
+});
+everytimeImportForm.addEventListener("submit", () => {
+  const submitButton = everytimeImportForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = "이미지 분석 중…";
+  everytimeImportForm.setAttribute("aria-busy", "true");
+  document.querySelector("#everytime-import-progress").hidden = false;
 });
 cancelEdit.addEventListener("click", resetForm);
 cancelEditSecondary.addEventListener("click", resetForm);

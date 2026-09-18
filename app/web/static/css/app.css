@@ -47,6 +47,9 @@ h2 { font-size: 16px; line-height: 1.4; }
 .everytime-import-button:hover { background: #e7f0e9; }
 .everytime-import-form { display: grid; gap: 14px; margin: 16px 0; padding: 16px; border: 1px solid #cddbd0; border-radius: 8px; background: #f7faf7; }
 .everytime-import-form[hidden] { display: none; }
+.everytime-import-progress { display: flex; align-items: center; gap: 8px; margin: 0; color: #40574b; font-size: 13px; line-height: 1.45; }
+.loading-dot { width: 9px; height: 9px; border: 2px solid #b5c8ba; border-top-color: #3d6a4e; border-radius: 50%; animation: import-spin .75s linear infinite; }
+@keyframes import-spin { to { transform: rotate(360deg); } }
 .block-form { display: grid; gap: 14px; margin: 16px 0; padding: 16px; border: 1px solid #d9ddd5; border-radius: 8px; background: #fafbf8; }
 .block-form[hidden] { display: none; }
 .form-heading, .form-actions, .block-list-heading, .preview-heading, .block-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }

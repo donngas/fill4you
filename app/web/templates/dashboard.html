@@ -26,6 +26,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <label>에브리타임 내보내기 이미지<input type="file" name="image" accept="image/jpeg,image/png" required></label>
         <div class="form-actions"><button type="submit">이미지 분석하기</button><button type="button" id="cancel-everytime-import" class="secondary">취소</button></div>
+        <p id="everytime-import-progress" class="everytime-import-progress" role="status" aria-live="polite" hidden><span class="loading-dot" aria-hidden="true"></span>시간표를 읽고 있어요. 강의 수에 따라 잠시 걸릴 수 있습니다.</p>
       </form>
       <form id="block-form" class="block-form" method="post" action="/blocks" hidden>
         <input id="source-input" type="hidden" name="source" value="timetable">
