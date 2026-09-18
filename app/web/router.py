@@ -12,6 +12,7 @@ from app.bookmarklet.router import bookmarklet_url
 from app.busy_blocks import service as busy_block_service
 from app.busy_blocks.models import BusyBlock
 from app.core.config import Settings, get_settings
+from app.core.csrf import get_csrf_token
 from app.core.database import get_db
 from app.google_calendar import service as google_calendar_service
 from app.shared.time import SEOUL, as_seoul_time
@@ -36,6 +37,7 @@ def home(
             "user": user,
             "development_login_enabled": settings.development_login_enabled,
             "auth_error": request.query_params.get("auth_error"),
+            "csrf_token": get_csrf_token(request),
         },
     )
 
@@ -101,7 +103,9 @@ def dashboard(
                 else None
             ),
             "google_calendar_connected": google_calendar_service.has_token(db, user.id),
+            "google_calendars": google_calendar_service.list_calendars(db, user.id),
             "google_calendar_configured": settings.google_calendar_configured,
             "google_sync_message": request.session.pop("google_sync_message", None),
+            "csrf_token": get_csrf_token(request),
         },
     )

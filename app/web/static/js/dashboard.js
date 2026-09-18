@@ -8,6 +8,7 @@ const recurringFields = document.querySelector("#recurring-fields");
 const oneTimeFields = document.querySelector("#one-time-fields");
 const cancelEdit = document.querySelector("#cancel-edit");
 const titles = { timetable: "시간표", manual: "직접 추가", google_calendar: "Google Calendar" };
+const dashboardStateKey = "fill4you.dashboard-state";
 
 function updateEditorVisibility(showForm) {
   form.hidden = !showForm;
@@ -36,6 +37,19 @@ function resetForm() {
   updateEditorVisibility(false);
 }
 
+function selectSource(source) {
+  const tab = document.querySelector(`.source-tab[data-source="${source}"]`);
+  if (!tab) return;
+  sourceInput.value = source;
+  document.querySelectorAll(".source-tab").forEach((item) => {
+    item.classList.toggle("is-active", item === tab);
+  });
+  document.querySelectorAll("[data-source-list]").forEach((list) => {
+    list.hidden = list.dataset.sourceList !== source;
+  });
+  resetForm();
+}
+
 showFormButton.addEventListener("click", () => updateEditorVisibility(true));
 
 document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => {
@@ -43,11 +57,7 @@ document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => {
 });
 document.querySelectorAll(".source-tab").forEach((tab) => {
   tab.addEventListener("click", () => {
-    const source = tab.dataset.source;
-    sourceInput.value = source;
-    document.querySelectorAll(".source-tab").forEach((item) => item.classList.toggle("is-active", item === tab));
-    document.querySelectorAll("[data-source-list]").forEach((list) => { list.hidden = list.dataset.sourceList !== source; });
-    resetForm();
+    selectSource(tab.dataset.source);
   });
 });
 document.querySelectorAll(".edit-block").forEach((button) => {
@@ -82,6 +92,32 @@ const minutesPerHour = 60;
 const startHour = 8;
 const endHour = 23;
 let dates = createDates(dashboard.dataset.weekStart, 14);
+
+function readDashboardState() {
+  try {
+    const rawState = sessionStorage.getItem(dashboardStateKey);
+    sessionStorage.removeItem(dashboardStateKey);
+    return rawState ? JSON.parse(rawState) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveDashboardState() {
+  try {
+    sessionStorage.setItem(
+      dashboardStateKey,
+      JSON.stringify({
+        source: sourceInput.value,
+        dates: dates.map(formatDate),
+        calendarScrollLeft: calendarScroll.scrollLeft,
+        pageScrollY: window.scrollY,
+      }),
+    );
+  } catch (_) {
+    // The dashboard remains fully usable if browser storage is unavailable.
+  }
+}
 
 function parseDate(dateValue) {
   const [year, month, day] = dateValue.split("-").map(Number);
@@ -182,4 +218,21 @@ collapseAllDatesButton.addEventListener("click", () => {
   renderCalendar();
 });
 
+const restoredState = readDashboardState();
+if (restoredState?.dates?.[0] === dashboard.dataset.weekStart) {
+  dates = restoredState.dates.map(parseDate);
+}
+if (restoredState?.source) selectSource(restoredState.source);
 renderCalendar();
+if (restoredState) {
+  calendarScroll.scrollLeft = Number(restoredState.calendarScrollLeft) || 0;
+  requestAnimationFrame(() => window.scrollTo(0, Number(restoredState.pageScrollY) || 0));
+}
+
+document.querySelectorAll('form[method="post"]').forEach((submittedForm) => {
+  submittedForm.addEventListener("submit", () => {
+    if (new URL(submittedForm.action, window.location.href).pathname !== "/auth/logout") {
+      saveDashboardState();
+    }
+  });
+});

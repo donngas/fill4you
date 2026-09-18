@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.busy_blocks.models import BusyBlock
 from app.core.config import Settings
-from app.google_calendar.models import GoogleCalendarEventState, GoogleOAuthToken
+from app.google_calendar.models import GoogleCalendar, GoogleCalendarEventState, GoogleOAuthToken
 from app.shared.time import SEOUL, as_seoul_time
 
 GOOGLE_API = "https://www.googleapis.com/calendar/v3"
@@ -59,6 +59,25 @@ def connected_user_ids(db: Session) -> list[int]:
     return list(db.scalars(select(GoogleOAuthToken.user_id)))
 
 
+def list_calendars(db: Session, user_id: int) -> list[GoogleCalendar]:
+    statement = (
+        select(GoogleCalendar)
+        .where(GoogleCalendar.user_id == user_id)
+        .order_by(GoogleCalendar.is_primary.desc(), GoogleCalendar.title)
+    )
+    return list(db.scalars(statement))
+
+
+def update_selected_calendars(db: Session, user_id: int, calendar_ids: set[str]) -> None:
+    calendars = list_calendars(db, user_id)
+    known_ids = {calendar.external_calendar_id for calendar in calendars}
+    if not calendar_ids.issubset(known_ids):
+        raise GoogleCalendarError("Unknown Google Calendar selection")
+    for calendar in calendars:
+        calendar.is_selected = calendar.external_calendar_id in calendar_ids
+    db.commit()
+
+
 def exclude_event(db: Session, user_id: int, external_event_id: str) -> None:
     state = db.scalar(
         select(GoogleCalendarEventState).where(
@@ -98,7 +117,9 @@ def _fresh_access_token(
 ) -> str:
     token = _load_token(db, user_id, settings)
     expires_at = token.get("expires_at")
-    valid_access_token = not expires_at or float(expires_at) > datetime.now().timestamp() + 60
+    valid_access_token = (
+        expires_at is None or float(expires_at) > datetime.now().timestamp() + 60
+    )
     if token.get("access_token") and valid_access_token:
         return str(token["access_token"])
     refresh_token = token.get("refresh_token")
@@ -152,18 +173,56 @@ def _event_block(calendar_id: str, event: dict[str, Any]) -> dict[str, Any] | No
     }
 
 
+def _list_remote_calendars(client: httpx.Client, access_token: str) -> list[dict[str, Any]]:
+    response = client.get(
+        f"{GOOGLE_API}/users/me/calendarList", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    if response.is_error:
+        raise GoogleCalendarError("Google calendar list could not be read")
+    return [item for item in response.json().get("items", []) if item.get("id")]
+
+
+def _reconcile_calendars(
+    db: Session, user_id: int, remote_calendars: list[dict[str, Any]]
+) -> list[str]:
+    existing = {calendar.external_calendar_id: calendar for calendar in list_calendars(db, user_id)}
+    is_initial_sync = not existing
+    has_primary = any(bool(remote.get("primary")) for remote in remote_calendars)
+    selected_ids: list[str] = []
+    for index, remote in enumerate(remote_calendars):
+        calendar_id = str(remote["id"])
+        primary = bool(remote.get("primary"))
+        calendar = existing.get(calendar_id)
+        if calendar is None:
+            calendar = GoogleCalendar(
+                user_id=user_id,
+                external_calendar_id=calendar_id,
+                title=str(remote.get("summaryOverride") or remote.get("summary") or calendar_id),
+                is_primary=primary,
+                is_selected=is_initial_sync and (primary or (not has_primary and index == 0)),
+            )
+            db.add(calendar)
+        else:
+            calendar.title = str(
+                remote.get("summaryOverride") or remote.get("summary") or calendar_id
+            )
+            calendar.is_primary = primary
+        if calendar.is_selected:
+            selected_ids.append(calendar_id)
+    db.flush()
+    return selected_ids
+
+
 def _list_events(
-    client: httpx.Client, access_token: str, start: datetime, end: datetime
+    client: httpx.Client,
+    access_token: str,
+    calendar_ids: list[str],
+    start: datetime,
+    end: datetime,
 ) -> list[dict[str, Any]]:
     headers = {"Authorization": f"Bearer {access_token}"}
-    calendars_response = client.get(f"{GOOGLE_API}/users/me/calendarList", headers=headers)
-    if calendars_response.is_error:
-        raise GoogleCalendarError("Google calendar list could not be read")
     events: list[dict[str, Any]] = []
-    for calendar in calendars_response.json().get("items", []):
-        calendar_id = calendar.get("id")
-        if not calendar_id:
-            continue
+    for calendar_id in calendar_ids:
         page_token: str | None = None
         while True:
             response = client.get(
@@ -184,7 +243,7 @@ def _list_events(
             events.extend(
                 item
                 for item in (
-                    _event_block(str(calendar_id), event)
+                    _event_block(calendar_id, event)
                     for event in response.json().get("items", [])
                 )
                 if item is not None
@@ -206,7 +265,11 @@ def sync_for_user(
     try:
         with httpx.Client(timeout=15.0) as client:
             access_token = _fresh_access_token(db, user_id, settings, client)
-            events = _list_events(client, access_token, window_start, window_end)
+            remote_calendars = _list_remote_calendars(client, access_token)
+            selected_calendar_ids = _reconcile_calendars(db, user_id, remote_calendars)
+            events = _list_events(
+                client, access_token, selected_calendar_ids, window_start, window_end
+            )
     except httpx.HTTPError as error:
         raise GoogleCalendarError("Google Calendar could not be reached") from error
 

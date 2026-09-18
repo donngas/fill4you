@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.accounts.router import router as accounts_router
 from app.availability.router import router as availability_router
@@ -37,8 +38,8 @@ def _sync_connected_calendars() -> None:
 async def _periodically_sync_calendars() -> None:
     interval_seconds = settings.google_sync_interval_minutes * 60
     while True:
-        await asyncio.to_thread(_sync_connected_calendars)
         await asyncio.sleep(interval_seconds)
+        await asyncio.to_thread(_sync_connected_calendars)
 
 
 @asynccontextmanager
@@ -58,6 +59,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.session_secret,

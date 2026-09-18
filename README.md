@@ -11,6 +11,12 @@ Configuration loads from `.env`; deployed process environment variables take pre
 Google Calendar sync also requires a `GOOGLE_TOKEN_ENCRYPTION_KEY`; generate one with the command in `.env.example`, then sign out and sign in again so fill4you can store a refreshable token securely.
 For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2meet.com", "https://www.when2meet.com"]`.
 
+## Deployment notes
+
+- Use HTTPS and set `APP_ENV=production`, `SESSION_HTTPS_ONLY=true`, a 32+-character `SESSION_SECRET`, non-default PostgreSQL credentials, and real `ALLOWED_HOSTS`.
+- Store OAuth credentials and `GOOGLE_TOKEN_ENCRYPTION_KEY` in deployment secrets. Keep the encryption key stable or users must reconnect Google.
+- Keep `APP_WORKERS=1` until periodic Calendar sync moves to an external scheduler. Back up PostgreSQL, including encrypted OAuth-token rows.
+
 ## Roadmap
 
 - Korean-first interface with an English option.
@@ -42,5 +48,6 @@ For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2mee
 5. Bookmarklet helper tokens and the availability API contract.
 6. Bookmarklet and isolated When2meet adapter: inspect slots, confirm changes, and apply changed ranges.
 7. Google Calendar OAuth and busy-event sync across the configured 7-day-past/90-day-future window; a 15-minute periodic sync and bookmarklet refresh keep it current, while local edits and exclusions survive normal refreshes.
-8. Calendar selection and periodic background sync.
-9. Calendar availability integration, tests, error handling, security hardening, and deployment configuration.
+8. Google Calendar selection: primary calendar selected by default; other subscribed/shared calendars are opt-in.
+9. Security and operational hardening: CSRF protection, production configuration checks, encrypted OAuth-token refresh, tests, and deployment guidance.
+10. Optional visual bookmarklet diff/undo experience and browser extension.

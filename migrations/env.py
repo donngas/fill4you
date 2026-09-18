@@ -8,7 +8,11 @@ from app.bookmarklet.models import BookmarkletToken  # noqa: F401
 from app.busy_blocks.models import BusyBlock  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import Base
-from app.google_calendar.models import GoogleCalendarEventState, GoogleOAuthToken  # noqa: F401
+from app.google_calendar.models import (  # noqa: F401
+    GoogleCalendar,
+    GoogleCalendarEventState,
+    GoogleOAuthToken,
+)
 
 config = context.config
 settings = get_settings()

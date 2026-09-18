@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.accounts.service import get_user
 from app.busy_blocks import service
 from app.busy_blocks.schemas import BusyBlockInput
+from app.core.csrf import require_csrf
 from app.core.database import get_db
 from app.shared.time import as_seoul_time
 
@@ -66,6 +67,7 @@ def create_block(
     starts_at: datetime | None = Form(None),
     ends_at: datetime | None = Form(None),
     db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
 ):
     user_id = _current_user_id(request, db)
     data = _to_input(
@@ -96,6 +98,7 @@ def update_block(
     starts_at: datetime | None = Form(None),
     ends_at: datetime | None = Form(None),
     db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
 ):
     user_id = _current_user_id(request, db)
     block = service.get_owned(db, user_id, block_id)
@@ -117,7 +120,12 @@ def update_block(
 
 
 @router.post("/{block_id}/delete")
-def delete_block(block_id: int, request: Request, db: Session = Depends(get_db)):
+def delete_block(
+    block_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
+):
     user_id = _current_user_id(request, db)
     block = service.get_owned(db, user_id, block_id)
     if block is None:

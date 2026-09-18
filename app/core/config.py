@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,7 @@ class Settings(BaseSettings):
     session_same_site: str = "lax"
     session_https_only: bool = False
     cors_allowed_origins: list[str] = []
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
     app_host: str = "0.0.0.0"
     app_port: int = 8000
     app_workers: int = 1
@@ -65,12 +67,32 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def require_secure_production_session_secret(self) -> "Settings":
         if self.app_env == "production":
-            if self.session_secret == "change-this-development-secret":
-                raise ValueError("SESSION_SECRET must be set in production")
+            if (
+                self.session_secret == "change-this-development-secret"
+                or len(self.session_secret) < 32
+            ):
+                raise ValueError("SESSION_SECRET must be at least 32 characters in production")
             if not self.session_https_only:
                 raise ValueError("SESSION_HTTPS_ONLY must be true in production")
             if self.postgres_password == "fill4you":
                 raise ValueError("POSTGRES_PASSWORD must be set in production")
+            if self.allowed_hosts == ["localhost", "127.0.0.1", "testserver"]:
+                raise ValueError("ALLOWED_HOSTS must be set in production")
+            if self.google_oauth_configured and not self.google_token_encryption_key:
+                raise ValueError(
+                    "GOOGLE_TOKEN_ENCRYPTION_KEY must be set with Google OAuth in production"
+                )
+            if self.google_calendar_configured and self.app_workers != 1:
+                raise ValueError("APP_WORKERS must be 1 while in-process Google sync is enabled")
+        if bool(self.google_client_id) != bool(self.google_client_secret):
+            raise ValueError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set together")
+        if self.google_token_encryption_key:
+            try:
+                Fernet(self.google_token_encryption_key.encode())
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    "GOOGLE_TOKEN_ENCRYPTION_KEY must be a valid Fernet key"
+                ) from error
         return self
 
     @property

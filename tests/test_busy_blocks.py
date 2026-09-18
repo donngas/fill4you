@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, time
 
 import pytest
@@ -8,6 +9,13 @@ from sqlalchemy.orm import Session
 from app.accounts.models import User
 from app.busy_blocks.models import BusyBlock
 from app.busy_blocks.schemas import BusyBlockInput
+
+
+def _csrf_token(client: TestClient) -> str:
+    response = client.get("/")
+    match = re.search(r'name="csrf_token" value="([^"]+)"', response.text)
+    assert match is not None
+    return match.group(1)
 
 
 def test_rejects_invalid_recurring_interval() -> None:
@@ -46,9 +54,10 @@ def test_busy_block_crud_is_authenticated_and_owned(
             "end_time": "11:00",
         },
     )
-    assert unauthenticated.status_code == 401
+    assert unauthenticated.status_code == 403
 
-    client.post("/auth/development")
+    csrf_token = _csrf_token(client)
+    client.post("/auth/development", data={"csrf_token": csrf_token})
     created = client.post(
         "/blocks",
         data={
@@ -58,6 +67,7 @@ def test_busy_block_crud_is_authenticated_and_owned(
             "weekday": "0",
             "start_time": "10:00",
             "end_time": "11:30",
+            "csrf_token": csrf_token,
         },
         follow_redirects=False,
     )
@@ -81,5 +91,14 @@ def test_busy_block_crud_is_authenticated_and_owned(
     db_session.add(other_block)
     db_session.commit()
 
-    forbidden = client.post(f"/blocks/{other_block.id}/delete")
+    forbidden = client.post(f"/blocks/{other_block.id}/delete", data={"csrf_token": csrf_token})
     assert forbidden.status_code == 404
+
+
+def test_form_actions_require_a_valid_csrf_token(client: TestClient) -> None:
+    rejected = client.post("/auth/development")
+    assert rejected.status_code == 403
+
+    csrf_token = _csrf_token(client)
+    accepted = client.post("/auth/development", data={"csrf_token": csrf_token})
+    assert accepted.status_code == 200

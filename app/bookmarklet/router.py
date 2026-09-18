@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.accounts.service import get_user
 from app.bookmarklet import service
+from app.core.csrf import require_csrf
 from app.core.database import get_db
 
 router = APIRouter(prefix="/bookmarklet", tags=["bookmarklet"])
@@ -26,6 +27,7 @@ def create_token(
     request: Request,
     label: str = Form("When2meet bookmarklet"),
     db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
 ):
     _, raw_token = service.create_token(db, _user_id(request, db), label)
     request.session["new_bookmarklet_token"] = raw_token
@@ -33,7 +35,12 @@ def create_token(
 
 
 @router.post("/tokens/{token_id}/revoke")
-def revoke_token(token_id: int, request: Request, db: Session = Depends(get_db)):
+def revoke_token(
+    token_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
+):
     if not service.revoke_token(db, _user_id(request, db), token_id):
         raise HTTPException(status_code=404, detail="Bookmarklet token not found")
     return RedirectResponse(url="/dashboard", status_code=303)
