@@ -8,7 +8,7 @@ const recurringFields = document.querySelector("#recurring-fields");
 const oneTimeFields = document.querySelector("#one-time-fields");
 const cancelEdit = document.querySelector("#cancel-edit");
 const cancelEditSecondary = document.querySelector("#cancel-edit-secondary");
-const titles = { timetable: "시간표", manual: "직접 추가", google_calendar: "Google Calendar" };
+const titles = { timetable: "시간표", manual: "일정", google_calendar: "구글 캘린더" };
 const grid = document.querySelector("#week-grid");
 const weekLabel = document.querySelector("#week-label");
 const calendarDescription = document.querySelector("#calendar-description");
@@ -17,10 +17,11 @@ const minutesPerHour = 60;
 const firstHour = 0;
 const lastHour = 24;
 let currentWeekStart = parseDate(dashboard.dataset.weekStart);
+let highlightedBlockTimer;
 
 function updateEditorVisibility(showForm) {
   form.hidden = !showForm;
-  showFormButton.hidden = showForm || sourceInput.value === "google_calendar";
+  showFormButton.hidden = showForm || sourceInput.value !== "timetable" && sourceInput.value !== "manual";
 }
 
 function setScheduleType(type) {
@@ -59,6 +60,17 @@ function selectSource(source, moveFocus = false) {
   });
   resetForm();
   if (moveFocus) tab.focus();
+}
+
+function revealBlock(block) {
+  selectSource(block.source);
+  const item = document.querySelector(`.block-card[data-block-id="${block.id}"]`);
+  if (!item) return;
+  document.querySelectorAll(".block-card.is-highlighted").forEach((card) => card.classList.remove("is-highlighted"));
+  window.clearTimeout(highlightedBlockTimer);
+  item.scrollIntoView({ behavior: "smooth", block: "center" });
+  item.classList.add("is-highlighted");
+  highlightedBlockTimer = window.setTimeout(() => item.classList.remove("is-highlighted"), 2200);
 }
 
 function parseDate(dateValue) {
@@ -100,7 +112,7 @@ function blockSegmentOnDate(block, date) {
 }
 
 function sourceLabel(source) {
-  return { timetable: "시간표", manual: "직접 추가", google_calendar: "Google Calendar" }[source];
+  return { timetable: "시간표", manual: "직접 추가", google_calendar: "구글 캘린더" }[source];
 }
 
 function layoutSegments(segments) {
@@ -153,7 +165,10 @@ function renderBlock(segment, dayIndex) {
   item.style.width = `calc((100% - 4rem) / 7 / ${columns} - 6px)`;
   item.style.top = `calc(44px + ${start * (hourHeight / minutesPerHour)}px + 2px)`;
   item.style.height = `${Math.max((end - start) * (hourHeight / minutesPerHour) - 4, 24)}px`;
-  item.addEventListener("click", () => { calendarDescription.textContent = describeBlock(block, date, segment); });
+  item.addEventListener("click", () => {
+    calendarDescription.textContent = describeBlock(block, date, segment);
+    revealBlock(block);
+  });
   grid.append(item);
 }
 

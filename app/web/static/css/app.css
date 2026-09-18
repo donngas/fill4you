@@ -1,5 +1,6 @@
 :root { color-scheme: light; font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; color: #292824; background: #f5f4f0; }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: #f5f4f0; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
@@ -53,6 +54,7 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .sync-form .checkbox-label { text-align: right; font-size: 13px; }
 .block-items, .token-list { display: grid; gap: 0; margin: 12px 0 0; padding: 0; list-style: none; }
 .block-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ecebe7; }
+.block-card.is-highlighted { margin: 0 -8px; padding: 12px 8px; border-bottom-color: #a8c5b0; background: #e7efe9; }
 .block-card strong { display: block; font-size: 14px; line-height: 1.4; }
 .block-card span, .empty-state { display: block; margin-top: 3px; color: #65675f; font-size: 13px; line-height: 1.45; }
 .block-actions { flex: 0 0 auto; }
