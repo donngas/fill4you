@@ -3,7 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.availability.schemas import AvailabilityRequest, AvailabilityResponse
-from app.availability.service import desired_mask
+from app.availability.service import busy_preview_blocks, desired_mask
 from app.bookmarklet.service import authenticate_token
 from app.busy_blocks import service as busy_block_service
 from app.core.config import Settings, get_settings
@@ -32,4 +32,12 @@ def when2meet_availability(
         # The bookmarklet remains useful with the last successfully imported events.
         pass
     blocks = busy_block_service.list_for_user(db, token.user_id)
-    return AvailabilityResponse(desired=desired_mask(blocks, payload.slots, payload.slot_minutes))
+    return AvailabilityResponse(
+        desired=desired_mask(blocks, payload.slots, payload.slot_minutes),
+        busy_blocks=busy_preview_blocks(
+            blocks,
+            payload.slots,
+            payload.slot_minutes,
+            include_titles=payload.include_busy_titles,
+        ),
+    )

@@ -6,6 +6,7 @@ from pydantic import BaseModel, field_validator
 class AvailabilityRequest(BaseModel):
     slots: list[datetime]
     slot_minutes: int = 15
+    include_busy_titles: bool = True
 
     @field_validator("slots")
     @classmethod
@@ -26,5 +27,12 @@ class AvailabilityRequest(BaseModel):
         return slot_minutes
 
 
+class BusyPreviewBlock(BaseModel):
+    id: int
+    title: str | None = None
+    slot_indexes: list[int]
+
+
 class AvailabilityResponse(BaseModel):
     desired: list[bool]
+    busy_blocks: list[BusyPreviewBlock]

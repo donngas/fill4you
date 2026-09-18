@@ -36,7 +36,7 @@ For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2mee
 - uv-based Python workflow; keep Docker and deployment in mind.
 - A bookmarklet that runs on When2meet, reads poll slots and current availability, requests an availability mask, and updates only changed ranges after confirmation.
 - A copyable and revocable scoped helper token for the bookmarklet.
-- No exposure of Google OAuth tokens, calendar event details, or When2meet credentials to the bookmarklet.
+- No exposure of Google OAuth tokens or When2meet credentials to the bookmarklet. Busy-range titles are included only when the bookmarklet explicitly opts in for its preview.
 - Keep undocumented When2meet integration isolated behind a small adapter.
 
 ## Implementation phases
