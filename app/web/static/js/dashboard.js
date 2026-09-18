@@ -11,6 +11,7 @@ const cancelEditSecondary = document.querySelector("#cancel-edit-secondary");
 const titles = { timetable: "시간표", manual: "일정", google_calendar: "구글 캘린더" };
 const grid = document.querySelector("#week-grid");
 const weekLabel = document.querySelector("#week-label");
+const googleWeekLabel = document.querySelector("#google-week-label");
 const calendarDescription = document.querySelector("#calendar-description");
 const bookmarkletDialog = document.querySelector("#bookmarklet-dialog");
 const bookmarkletDialogKey = "fill4you.bookmarklet-dialog";
@@ -178,7 +179,9 @@ function renderCalendar() {
   const dates = createDates(currentWeekStart);
   const dateFormatter = new Intl.DateTimeFormat("ko-KR", { month: "numeric", day: "numeric", weekday: "short" });
   const rangeFormatter = new Intl.DateTimeFormat("ko-KR", { year: "numeric", month: "long", day: "numeric" });
-  weekLabel.textContent = `${rangeFormatter.format(dates[0])} – ${rangeFormatter.format(dates[6])}`;
+  const weekRange = `${rangeFormatter.format(dates[0])} – ${rangeFormatter.format(dates[6])}`;
+  weekLabel.textContent = weekRange;
+  googleWeekLabel.textContent = weekRange;
   grid.style.gridTemplateColumns = "4rem repeat(7, minmax(88px, 1fr))";
   grid.style.gridTemplateRows = `44px repeat(${lastHour - firstHour}, ${hourHeight}px)`;
   grid.innerHTML = '<div class="grid-corner" aria-hidden="true"></div>';
@@ -197,6 +200,24 @@ function renderCalendar() {
     }).filter(Boolean);
     layoutSegments(segments).forEach((segment) => renderBlock(segment, index));
   });
+}
+
+function renderGoogleBlockList() {
+  const weekDates = createDates(currentWeekStart);
+  const googleItems = [...document.querySelectorAll("#google-calendar-panel .block-card")];
+  let visibleItems = 0;
+  googleItems.forEach((item) => {
+    const block = blocks.find((entry) => entry.id === Number(item.dataset.blockId));
+    const isInWeek = block && weekDates.some((date) => blockSegmentOnDate(block, date));
+    item.hidden = !isInWeek;
+    if (isInWeek) visibleItems += 1;
+  });
+  document.querySelector("#google-week-empty").hidden = visibleItems > 0;
+}
+
+function updateWeek() {
+  renderCalendar();
+  renderGoogleBlockList();
 }
 
 showFormButton.addEventListener("click", () => updateEditorVisibility(true));
@@ -232,9 +253,12 @@ document.querySelectorAll(".edit-block").forEach((button) => button.addEventList
   document.querySelector("#title-input").focus();
 }));
 document.querySelectorAll("[data-confirm]").forEach((button) => button.addEventListener("click", (event) => { if (!window.confirm(button.dataset.confirm)) event.preventDefault(); }));
-document.querySelector("#previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); renderCalendar(); });
-document.querySelector("#next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); renderCalendar(); });
-document.querySelector("#current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); renderCalendar(); });
+document.querySelector("#previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); updateWeek(); });
+document.querySelector("#next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); updateWeek(); });
+document.querySelector("#current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); updateWeek(); });
+document.querySelector("#google-previous-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, -7); updateWeek(); });
+document.querySelector("#google-next-week").addEventListener("click", () => { currentWeekStart = addDays(currentWeekStart, 7); updateWeek(); });
+document.querySelector("#google-current-week").addEventListener("click", () => { currentWeekStart = parseDate(dashboard.dataset.weekStart); updateWeek(); });
 document.querySelector("#open-bookmarklet-setup").addEventListener("click", () => bookmarkletDialog.showModal());
 document.querySelector("#close-bookmarklet-setup").addEventListener("click", () => bookmarkletDialog.close());
 bookmarkletDialog.addEventListener("click", (event) => { if (event.target === bookmarkletDialog) bookmarkletDialog.close(); });
@@ -247,4 +271,4 @@ try {
     bookmarkletDialog.showModal();
   }
 } catch (_) { /* The dialog remains available through its header action. */ }
-renderCalendar();
+updateWeek();

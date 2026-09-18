@@ -62,6 +62,9 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .block-actions button { min-height: 32px; padding: 6px 8px; font-size: 13px; }
 .calendar-selection { display: grid; gap: 10px; margin: 14px 0; }
 .calendar-selection fieldset { display: grid; gap: 8px; }
+.google-calendar-navigation { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 4px; }
+.google-calendar-navigation button { min-height: 36px; padding: 7px 9px; font-size: 13px; }
+.week-context { margin: 0 0 8px; color: #65675f; font-size: 13px; line-height: 1.45; }
 .bookmarklet-link { display: inline-flex; min-height: 40px; align-items: center; padding: 9px 12px; border-radius: 6px; background: #3d4a43; color: #fff; font-size: 14px; font-weight: 650; text-decoration: none; }
 .token-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; font-size: 14px; }
 .token-list em { color: #65675f; font-size: 13px; font-style: normal; }
