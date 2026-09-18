@@ -318,7 +318,13 @@ document.querySelector("#cancel-everytime-import").addEventListener("click", () 
   everytimeImportForm.hidden = true;
   updateEditorVisibility(false);
 });
-everytimeImportForm.addEventListener("submit", () => {
+everytimeImportForm.addEventListener("submit", (event) => {
+  const image = everytimeImportForm.querySelector('input[type="file"]').files[0];
+  if (image && image.size > 20 * 1024 * 1024) {
+    event.preventDefault();
+    window.alert("이미지 파일은 최대 20MB까지 업로드할 수 있습니다. 더 작은 JPG 또는 PNG를 선택해 주세요.");
+    return;
+  }
   const submitButton = everytimeImportForm.querySelector('button[type="submit"]');
   submitButton.disabled = true;
   submitButton.textContent = "이미지 분석 중…";

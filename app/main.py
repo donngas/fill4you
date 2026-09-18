@@ -15,6 +15,7 @@ from app.bookmarklet.router import router as bookmarklet_router
 from app.busy_blocks.router import router as busy_blocks_router
 from app.core.config import get_settings
 from app.core.database import SessionLocal
+from app.core.security import SecurityHeadersMiddleware
 from app.everytime_importer.router import router as everytime_importer_router
 from app.google_calendar import service as google_calendar_service
 from app.google_calendar.router import router as google_calendar_router
@@ -61,6 +62,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
+app.add_middleware(SecurityHeadersMiddleware, production=settings.app_env == "production")
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.session_secret,

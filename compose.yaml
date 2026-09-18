@@ -6,7 +6,9 @@ services:
       --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8000}
       --workers ${APP_WORKERS:-1} --log-level ${APP_LOG_LEVEL:-info}"
     ports:
-      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
+      # Keep the origin private. cloudflared should reach http://app:8000 on the Docker network;
+      # this binding exists only for local development on the Docker host.
+      - "127.0.0.1:${APP_PORT:-8000}:${APP_PORT:-8000}"
     environment:
       APP_NAME: ${APP_NAME:-fill4you}
       APP_ENV: ${APP_ENV:-development}
@@ -33,6 +35,7 @@ services:
       APP_PORT: ${APP_PORT:-8000}
       APP_WORKERS: ${APP_WORKERS:-1}
       APP_LOG_LEVEL: ${APP_LOG_LEVEL:-info}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-}
       DEVELOPMENT_USER_EMAIL: ${DEVELOPMENT_USER_EMAIL:-developer@fill4you.local}
     depends_on:
       db:

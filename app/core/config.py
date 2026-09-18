@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     app_port: int = 8000
     app_workers: int = 1
     app_log_level: str = "info"
+    public_base_url: str | None = None
     development_user_email: str = "developer@fill4you.local"
 
     model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
@@ -54,6 +55,11 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_empty_cookie_domain(cls, value: str | None) -> str | None:
         return value or None
+
+    @field_validator("public_base_url", mode="before")
+    @classmethod
+    def normalize_public_base_url(cls, value: str | None) -> str | None:
+        return value.rstrip("/") if value else None
 
     @field_validator(
         "google_sync_past_days", "google_sync_future_days", "google_sync_interval_minutes"
@@ -78,6 +84,8 @@ class Settings(BaseSettings):
                 raise ValueError("POSTGRES_PASSWORD must be set in production")
             if self.allowed_hosts == ["localhost", "127.0.0.1", "testserver"]:
                 raise ValueError("ALLOWED_HOSTS must be set in production")
+            if not self.public_base_url or not self.public_base_url.startswith("https://"):
+                raise ValueError("PUBLIC_BASE_URL must be an HTTPS URL in production")
             if self.google_oauth_configured and not self.google_token_encryption_key:
                 raise ValueError(
                     "GOOGLE_TOKEN_ENCRYPTION_KEY must be set with Google OAuth in production"

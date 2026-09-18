@@ -17,6 +17,10 @@ from app.web.router import templates
 
 router = APIRouter(prefix="/everytime", tags=["everytime-import"])
 logger = logging.getLogger(__name__)
+MAX_IMAGE_BYTES = 20 * 1024 * 1024
+IMAGE_TOO_LARGE_MESSAGE = (
+    "이미지 파일은 최대 20MB까지 업로드할 수 있습니다. 더 작은 JPG 또는 PNG를 선택해 주세요."
+)
 
 
 def _current_user_id(request: Request, db: Session) -> int:
@@ -36,12 +40,23 @@ async def preview_import(
     _current_user_id(request, db)
     if image.content_type not in {"image/jpeg", "image/png"}:
         raise HTTPException(status_code=422, detail="Please upload a JPG or PNG image")
-    try:
-        preview = parse_everytime_image(
-            await image.read(), title_reader=paddle_korean_title_reader()
+    if image.size is not None and image.size > MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=IMAGE_TOO_LARGE_MESSAGE,
         )
+    try:
+        image_bytes = await image.read(MAX_IMAGE_BYTES + 1)
+        if len(image_bytes) > MAX_IMAGE_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=IMAGE_TOO_LARGE_MESSAGE,
+            )
+        preview = parse_everytime_image(image_bytes, title_reader=paddle_korean_title_reader())
     except EverytimeParseError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
+    except HTTPException:
+        raise
     except Exception as error:
         logger.exception("Everytime image import failed")
         raise HTTPException(

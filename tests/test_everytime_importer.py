@@ -1,9 +1,12 @@
+import re
 from datetime import time
 
 import cv2
 import numpy as np
+from fastapi.testclient import TestClient
 
 from app.everytime_importer import parse_everytime_image
+from app.everytime_importer import router as everytime_router
 
 
 def test_parser_hands_quarter_hour_geometry_to_busy_block_contract() -> None:
@@ -43,3 +46,22 @@ def test_parser_hands_quarter_hour_geometry_to_busy_block_contract() -> None:
         "First class",
         "Second class",
     ]
+
+
+def test_import_rejects_images_larger_than_20_mebibytes(
+    client: TestClient, monkeypatch
+) -> None:
+    assert everytime_router.MAX_IMAGE_BYTES == 20 * 1024 * 1024
+    monkeypatch.setattr(everytime_router, "MAX_IMAGE_BYTES", 5)
+    home = client.get("/")
+    csrf_token = re.search(r'name="csrf_token" value="([^"]+)"', home.text).group(1)
+    assert client.post("/auth/development", data={"csrf_token": csrf_token}).status_code == 303
+
+    response = client.post(
+        "/everytime/import",
+        data={"csrf_token": csrf_token},
+        files={"image": ("large.png", b"x" * 6, "image/png")},
+    )
+
+    assert response.status_code == 413
+    assert "20MB" in response.json()["detail"]

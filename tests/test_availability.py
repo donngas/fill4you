@@ -7,6 +7,7 @@ from app.accounts.models import User
 from app.availability.service import desired_mask
 from app.bookmarklet import service as bookmarklet_service
 from app.busy_blocks.models import BusyBlock
+from app.core.rate_limit import FixedWindowRateLimiter
 
 
 def test_desired_mask_excludes_busy_recurring_slots() -> None:
@@ -120,3 +121,11 @@ def test_bookmarklet_script_keeps_when2meet_adapter_isolated(client: TestClient)
     assert "fill4you-preview-busy" in response.text
     assert "fill4you-busy-label" in response.text
     assert "fill4you-preview-panel" in response.text
+
+
+def test_availability_rate_limiter_allows_normal_retries_then_throttles() -> None:
+    limiter = FixedWindowRateLimiter(limit=30, window_seconds=60)
+    for _ in range(30):
+        assert limiter.retry_after("a-token") is None
+
+    assert limiter.retry_after("a-token") is not None

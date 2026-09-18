@@ -1,0 +1,91 @@
+services:
+  app:
+    image: ${APP_IMAGE:?Set APP_IMAGE in the server-local .env file}
+    pull_policy: always
+    restart: unless-stopped
+    command: >-
+      sh -c "uv run alembic upgrade head && uv run uvicorn app.main:app
+      --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8000}
+      --workers ${APP_WORKERS:-1} --log-level ${APP_LOG_LEVEL:-info}"
+    environment:
+      APP_NAME: ${APP_NAME:-fill4you}
+      APP_ENV: ${APP_ENV:?Set APP_ENV in the server-local .env file}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in the server-local .env file}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in the server-local .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the server-local .env file}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in the server-local .env file}
+      SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-fill4you_session}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
+      SESSION_SAME_SITE: ${SESSION_SAME_SITE:-lax}
+      SESSION_HTTPS_ONLY: ${SESSION_HTTPS_ONLY:?Set SESSION_HTTPS_ONLY=true in production}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-[]}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:?Set ALLOWED_HOSTS in the server-local .env file}
+      APP_HOST: ${APP_HOST:-0.0.0.0}
+      APP_PORT: ${APP_PORT:-8000}
+      APP_WORKERS: ${APP_WORKERS:-1}
+      APP_LOG_LEVEL: ${APP_LOG_LEVEL:-info}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:?Set PUBLIC_BASE_URL in the server-local .env file}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
+      GOOGLE_TOKEN_ENCRYPTION_KEY: ${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
+      GOOGLE_SYNC_PAST_DAYS: ${GOOGLE_SYNC_PAST_DAYS:-7}
+      GOOGLE_SYNC_FUTURE_DAYS: ${GOOGLE_SYNC_FUTURE_DAYS:-90}
+      GOOGLE_SYNC_INTERVAL_MINUTES: ${GOOGLE_SYNC_INTERVAL_MINUTES:-15}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+    networks:
+      - backend
+      - tunnel
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in the server-local .env file}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in the server-local .env file}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the server-local .env file}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    pull_policy: always
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?Set CLOUDFLARE_TUNNEL_TOKEN in the server-local .env file}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - tunnel
+
+networks:
+  # The database is isolated from both the host and the tunnel container.
+  backend:
+    internal: true
+  # This has no host port mapping. It gives app outbound access for Google and lets cloudflared
+  # reach the app by its Docker DNS name.
+  tunnel:
+
+volumes:
+  postgres_data:

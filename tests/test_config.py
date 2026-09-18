@@ -26,6 +26,7 @@ def test_production_google_oauth_requires_token_encryption_key() -> None:
             session_https_only=True,
             postgres_password="not-the-default",
             allowed_hosts=["fill4you.example"],
+            public_base_url="https://fill4you.example",
             google_client_id="client-id",
             google_client_secret="client-secret",
             google_token_encryption_key=None,
@@ -53,6 +54,17 @@ def test_database_url_is_built_from_postgres_settings() -> None:
     assert settings.database_url.host == "postgres.example"
     assert settings.database_url.port == 5433
     assert settings.database_url.database == "schedule"
+
+
+def test_production_requires_https_public_base_url() -> None:
+    with pytest.raises(ValidationError, match="PUBLIC_BASE_URL"):
+        Settings(
+            app_env="production",
+            session_secret="a-secure-secret-that-is-long-enough",
+            session_https_only=True,
+            postgres_password="not-the-default",
+            allowed_hosts=["fill4you.example"],
+        )
 
 
 def test_environment_variables_override_development_defaults(

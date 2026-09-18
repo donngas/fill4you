@@ -1,0 +1,19 @@
+name: Trigger Watchtower update
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request update
+        env:
+          WATCHTOWER_URL: ${{ secrets.WATCHTOWER_URL }}
+          WATCHTOWER_TOKEN: ${{ secrets.WATCHTOWER_TOKEN }}
+        run: >-
+          curl --fail --show-error --silent --retry 3 --retry-all-errors
+          --request POST "${WATCHTOWER_URL%/}/v1/update"
+          --header "Authorization: Bearer ${WATCHTOWER_TOKEN}"

@@ -15,6 +15,7 @@ venv/
 .env
 .env.*
 !.env.example
+!.env.prod.example
 
 # Application data and logs
 *.sqlite3
@@ -27,4 +28,3 @@ node_modules/
 .vscode/
 *.swp
 .DS_Store
-

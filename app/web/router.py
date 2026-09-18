@@ -116,7 +116,9 @@ def dashboard(
                 for token in bookmarklet_service.list_tokens(db, user.id)
             ],
             "bookmarklet_url": (
-                bookmarklet_url(str(request.base_url), new_bookmarklet_token)
+                bookmarklet_url(
+                    settings.public_base_url or str(request.base_url), new_bookmarklet_token
+                )
                 if new_bookmarklet_token
                 else None
             ),

@@ -14,8 +14,26 @@ For the When2meet bookmarklet, set `CORS_ALLOWED_ORIGINS` to `["https://when2mee
 ## Deployment notes
 
 - Use HTTPS and set `APP_ENV=production`, `SESSION_HTTPS_ONLY=true`, a 32+-character `SESSION_SECRET`, non-default PostgreSQL credentials, and real `ALLOWED_HOSTS`.
+- For a Cloudflare Tunnel deployment, set `PUBLIC_BASE_URL=https://your-public-hostname`; configure cloudflared to use `http://app:8000` on the private Docker network. Do not publish the app port publicly (the included Compose file binds it to localhost only). Cloudflare must be the only public ingress, and the public hostname must be the same one in `ALLOWED_HOSTS`, `PUBLIC_BASE_URL`, and Google OAuth's redirect URI.
+- Keep Cloudflare's request-size limits at or below 20 MB for the image-import route. The app also enforces this limit and reports a clear rejection message.
 - Store OAuth credentials and `GOOGLE_TOKEN_ENCRYPTION_KEY` in deployment secrets. Keep the encryption key stable or users must reconnect Google.
 - Keep `APP_WORKERS=1` until periodic Calendar sync moves to an external scheduler. Back up PostgreSQL, including encrypted OAuth-token rows.
+
+### Production Compose and updates
+
+Copy `.env.prod.example` to `.env` **only on the server**, fill every secret, and run
+`docker compose --env-file .env -f compose.prod.yaml up -d`. The production Compose file has no
+host port mappings: Cloudflare Tunnel is the sole ingress, while PostgreSQL is on an internal-only
+network. In Cloudflare's remotely managed tunnel configuration, set the public hostname service to
+`http://app:8000`.
+
+The workflows under `.github/workflows/` publish `ghcr.io/<owner>/<repository>:latest` and can
+request an update from a separately running Watchtower HTTP API. Add `WATCHTOWER_URL` (the base
+URL, without `/v1/update`) and `WATCHTOWER_TOKEN` as GitHub Actions secrets. Configure Watchtower
+with `--http-api-update`, `WATCHTOWER_HTTP_API_TOKEN`, and access restricted to GitHub Actions;
+`--label-enable` ensures only the app service is opted in through its Watchtower label. The
+server-local `.env` should set
+`APP_IMAGE` to that GHCR image and must never be committed.
 
 ## Roadmap
 
