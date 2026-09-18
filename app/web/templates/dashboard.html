@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="dashboard" data-language="{{ lang }}" data-week-start="{{ week_start }}" data-week-end="{{ week_end }}">
+  <header class="dashboard-header">
+    <div><p class="eyebrow">fill4you</p><h1>{{ "내 일정" if lang == "ko" else "My schedule" }}</h1><p>{{ "모든 시간은 Asia/Seoul 기준입니다." if lang == "ko" else "All times use Asia/Seoul." }}</p></div>
+    <form method="post" action="/auth/logout"><button class="text-button" type="submit">{{ t("sign_out") }}</button></form>
+  </header>
+  <div class="dashboard-layout">
+    <aside class="schedule-editor">
+      <div class="source-tabs"><button type="button" class="source-tab is-active" data-source="timetable">{{ "시간표" if lang == "ko" else "Timetable" }}</button><button type="button" class="source-tab" data-source="manual">{{ "직접 추가" if lang == "ko" else "Manual" }}</button><button type="button" class="source-tab" data-source="google_calendar">Google Calendar</button></div>
+      <form id="block-form" class="block-form" method="post" action="/blocks">
+        <input id="source-input" type="hidden" name="source" value="timetable">
+        <h2 id="form-heading">{{ "시간표 추가" if lang == "ko" else "Add timetable block" }}</h2>
+        <label>{{ "이름" if lang == "ko" else "Name" }}<input id="title-input" name="title" required maxlength="255" placeholder="{{ "예: 알고리즘" if lang == "ko" else "e.g. Algorithms" }}"></label>
+        <fieldset><legend>{{ "일정 종류" if lang == "ko" else "Schedule type" }}</legend><label><input type="radio" name="schedule_type" value="recurring" checked> {{ "매주 반복" if lang == "ko" else "Weekly" }}</label><label><input type="radio" name="schedule_type" value="one_time"> {{ "한 번만" if lang == "ko" else "One-time" }}</label></fieldset>
+        <div id="recurring-fields"><label>{{ "요일" if lang == "ko" else "Weekday" }}<select id="weekday-input" name="weekday"><option value="0">{{ "월요일" if lang == "ko" else "Monday" }}</option><option value="1">{{ "화요일" if lang == "ko" else "Tuesday" }}</option><option value="2">{{ "수요일" if lang == "ko" else "Wednesday" }}</option><option value="3">{{ "목요일" if lang == "ko" else "Thursday" }}</option><option value="4">{{ "금요일" if lang == "ko" else "Friday" }}</option><option value="5">{{ "토요일" if lang == "ko" else "Saturday" }}</option><option value="6">{{ "일요일" if lang == "ko" else "Sunday" }}</option></select></label><div class="field-row"><label>{{ "시작" if lang == "ko" else "Start" }}<input id="start-time-input" type="time" name="start_time" required></label><label>{{ "종료" if lang == "ko" else "End" }}<input id="end-time-input" type="time" name="end_time" required></label></div></div>
+        <div id="one-time-fields" hidden><label>{{ "시작" if lang == "ko" else "Start" }}<input id="starts-at-input" type="datetime-local" name="starts_at"></label><label>{{ "종료" if lang == "ko" else "End" }}<input id="ends-at-input" type="datetime-local" name="ends_at"></label></div>
+        <div class="form-actions"><button type="submit" id="save-button">{{ "추가" if lang == "ko" else "Add" }}</button><button type="button" id="cancel-edit" class="secondary" hidden>{{ "취소" if lang == "ko" else "Cancel" }}</button></div>
+      </form>
+      <div class="block-lists">
+      {% for source, label in [("timetable", "시간표" if lang == "ko" else "Timetable"), ("manual", "직접 추가" if lang == "ko" else "Manual"), ("google_calendar", "Google Calendar")] %}
+        <section class="block-list" data-source-list="{{ source }}" {% if source != "timetable" %}hidden{% endif %}><h2>{{ label }}</h2>
+          {% set source_blocks = blocks | selectattr("source", "equalto", source) | list %}
+          {% if source_blocks %}{% for block in source_blocks %}<article class="block-card"><strong>{{ block.title }}</strong><span>{% if block.is_recurring %}{{ ["월", "화", "수", "목", "금", "토", "일"][block.weekday] if lang == "ko" else ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][block.weekday] }} · {{ block.start_time.strftime("%H:%M") }}–{{ block.end_time.strftime("%H:%M") }}{% else %}{{ block.starts_at.strftime("%Y-%m-%d %H:%M") }}–{{ block.ends_at.strftime("%H:%M") }}{% endif %}</span><div><button type="button" class="edit-block secondary" data-block-id="{{ block.id }}">{{ "수정" if lang == "ko" else "Edit" }}</button><form method="post" action="/blocks/{{ block.id }}/delete"><button type="submit" class="danger">{{ "삭제" if lang == "ko" else "Delete" }}</button></form></div></article>{% endfor %}{% elif source == "google_calendar" %}<p class="empty-state">{{ "Google Calendar 연결 및 동기화는 다음 단계에서 제공됩니다." if lang == "ko" else "Google Calendar connection and sync arrive in the next phase." }}</p>{% else %}<p class="empty-state">{{ "아직 일정이 없습니다." if lang == "ko" else "No blocks yet." }}</p>{% endif %}
+        </section>
+      {% endfor %}
+      </div>
+    </aside>
+    <section class="calendar-preview"><div class="preview-heading"><h2>{{ "주간 미리보기" if lang == "ko" else "Weekly preview" }}</h2><span>Asia/Seoul</span></div><div id="week-grid" class="week-grid"></div></section>
+  </div>
+</section>
+<script id="blocks-data" type="application/json">{{ blocks_json | tojson }}</script>
+<script src="{{ url_for('static', path='js/dashboard.js') }}"></script>
+{% endblock %}

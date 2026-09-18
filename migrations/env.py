@@ -4,6 +4,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.accounts.models import User  # noqa: F401
+from app.busy_blocks.models import BusyBlock  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import Base
 
