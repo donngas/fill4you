@@ -13,3 +13,20 @@ def test_empty_cookie_domain_is_treated_as_unset() -> None:
     settings = Settings(session_cookie_domain="")
 
     assert settings.session_cookie_domain is None
+
+
+def test_database_url_is_built_from_postgres_settings() -> None:
+    settings = Settings(
+        postgres_db="schedule",
+        postgres_user="student",
+        postgres_password="pass word",
+        postgres_host="postgres.example",
+        postgres_port=5433,
+    )
+
+    assert settings.database_url.drivername == "postgresql+psycopg"
+    assert settings.database_url.username == "student"
+    assert settings.database_url.password == "pass word"
+    assert settings.database_url.host == "postgres.example"
+    assert settings.database_url.port == 5433
+    assert settings.database_url.database == "schedule"

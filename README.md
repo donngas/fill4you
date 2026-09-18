@@ -5,7 +5,7 @@ fill4you creates a first-draft availability for When2meet from a university time
 ## Run locally
 
 Copy `.env.example` to `.env`, set a secure `SESSION_SECRET`, then run `docker compose up --build`.
-Set `FILL4YOU_PORT` if port 8000 is already in use.
+Set `APP_PORT` if port 8000 is already in use.
 Replace the example PostgreSQL and session values before deployment.
 Google sign-in requires the credentials in `.env`; the development login is available until then.
 

@@ -1,13 +1,18 @@
 from functools import lru_cache
 
-from pydantic import PostgresDsn, field_validator, model_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 
 class Settings(BaseSettings):
     app_name: str = "fill4you"
     app_env: str = "development"
-    database_url: PostgresDsn = "postgresql+psycopg://fill4you:fill4you@db:5432/fill4you"
+    postgres_db: str = "fill4you"
+    postgres_user: str = "fill4you"
+    postgres_password: str = "fill4you"
+    postgres_host: str = "db"
+    postgres_port: int = 5432
     session_secret: str = "change-this-development-secret"
     google_client_id: str | None = None
     google_client_secret: str | None = None
@@ -44,6 +49,8 @@ class Settings(BaseSettings):
                 raise ValueError("SESSION_SECRET must be set in production")
             if not self.session_https_only:
                 raise ValueError("SESSION_HTTPS_ONLY must be true in production")
+            if self.postgres_password == "fill4you":
+                raise ValueError("POSTGRES_PASSWORD must be set in production")
         return self
 
     @property
@@ -53,6 +60,17 @@ class Settings(BaseSettings):
     @property
     def session_https_only_enabled(self) -> bool:
         return self.session_https_only
+
+    @property
+    def database_url(self) -> URL:
+        return URL.create(
+            drivername="postgresql+psycopg",
+            username=self.postgres_user,
+            password=self.postgres_password,
+            host=self.postgres_host,
+            port=self.postgres_port,
+            database=self.postgres_db,
+        )
 
     @property
     def google_oauth_configured(self) -> bool:

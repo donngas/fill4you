@@ -6,10 +6,14 @@ services:
       --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8000}
       --workers ${APP_WORKERS:-1} --log-level ${APP_LOG_LEVEL:-info}"
     ports:
-      - "${FILL4YOU_PORT:-8000}:${APP_PORT:-8000}"
+      - "${APP_PORT:-8000}:${APP_PORT:-8000}"
     environment:
       APP_ENV: ${APP_ENV:-development}
-      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://fill4you:fill4you@db:5432/fill4you}
+      POSTGRES_DB: ${POSTGRES_DB:-fill4you}
+      POSTGRES_USER: ${POSTGRES_USER:-fill4you}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fill4you}
+      POSTGRES_HOST: ${POSTGRES_HOST:-db}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
       SESSION_SECRET: ${SESSION_SECRET:-change-this-development-secret}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
