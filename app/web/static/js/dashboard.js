@@ -3,6 +3,8 @@ const bufferDefaults = JSON.parse(document.querySelector("#buffer-defaults-data"
 const dashboard = document.querySelector(".dashboard");
 const form = document.querySelector("#block-form");
 const showFormButton = document.querySelector("#show-block-form");
+const showEverytimeImportButton = document.querySelector("#show-everytime-import");
+const everytimeImportForm = document.querySelector("#everytime-import-form");
 const sourceInput = document.querySelector("#source-input");
 const heading = document.querySelector("#form-heading");
 const recurringFields = document.querySelector("#recurring-fields");
@@ -30,7 +32,19 @@ let highlightedBlockTimer;
 
 function updateEditorVisibility(showForm) {
   form.hidden = !showForm;
-  showFormButton.hidden = showForm || sourceInput.value !== "timetable" && sourceInput.value !== "manual";
+  const canAdd = sourceInput.value === "timetable" || sourceInput.value === "manual";
+  showFormButton.hidden = showForm || !canAdd;
+  showEverytimeImportButton.hidden = showForm || sourceInput.value !== "timetable";
+  if (showForm) everytimeImportForm.hidden = true;
+}
+
+function updateWeekdayFields() {
+  const canSelectMultiple = form.action.endsWith("/blocks")
+    && sourceInput.value === "timetable"
+    && document.querySelector('input[name="schedule_type"]:checked').value === "recurring";
+  document.querySelector("#multiple-weekdays-field").hidden = !canSelectMultiple;
+  document.querySelector("#single-weekday-field").hidden = canSelectMultiple;
+  document.querySelector("#weekday-input").disabled = canSelectMultiple;
 }
 
 function setScheduleType(type) {
@@ -48,8 +62,9 @@ function resetForm() {
   sourceInput.value = selectedSource;
   document.querySelector('input[name="schedule_type"][value="recurring"]').checked = true;
   setScheduleType("recurring");
-  heading.textContent = `${titles[selectedSource]} 추가`;
-  showFormButton.textContent = `${titles[selectedSource]} 추가`;
+  updateWeekdayFields();
+  heading.textContent = selectedSource === "timetable" ? "수동으로 강의 추가" : `${titles[selectedSource]} 추가`;
+  showFormButton.textContent = selectedSource === "timetable" ? "수동으로 강의 추가" : `${titles[selectedSource]} 추가`;
   document.querySelector("#save-button").textContent = "추가";
   const [beforeBuffer, afterBuffer] = bufferDefaults[selectedSource];
   document.querySelector("#before-buffer-input").value = beforeBuffer;
@@ -168,30 +183,32 @@ function sourceLabel(source) {
 }
 
 function layoutSegments(segments) {
-  const sorted = [...segments].sort((a, b) => a.start - b.start || b.end - a.end);
+  // Buffers make an interval look larger, but should not force two otherwise separate classes
+  // into side-by-side columns.  Only actual class-time conflicts consume another column.
+  const sorted = [...segments].sort((a, b) => a.actualStart - b.actualStart || b.actualEnd - a.actualEnd);
   const clusters = [];
   let cluster = [];
   let clusterEnd = -1;
   sorted.forEach((segment) => {
-    if (cluster.length && segment.start >= clusterEnd) {
+    if (cluster.length && segment.actualStart >= clusterEnd) {
       clusters.push(cluster);
       cluster = [];
       clusterEnd = -1;
     }
     cluster.push(segment);
-    clusterEnd = Math.max(clusterEnd, segment.end);
+    clusterEnd = Math.max(clusterEnd, segment.actualEnd);
   });
   if (cluster.length) clusters.push(cluster);
 
   return clusters.flatMap((cluster) => {
     const columns = [];
     cluster.forEach((segment) => {
-      let column = columns.findIndex((columnEnd) => columnEnd <= segment.start);
+      let column = columns.findIndex((columnEnd) => columnEnd <= segment.actualStart);
       if (column === -1) {
         column = columns.length;
-        columns.push(segment.end);
+        columns.push(segment.actualEnd);
       } else {
-        columns[column] = segment.end;
+        columns[column] = segment.actualEnd;
       }
       segment.column = column;
     });
@@ -291,10 +308,26 @@ function updateWeek() {
   renderGoogleBlockList();
 }
 
-showFormButton.addEventListener("click", () => updateEditorVisibility(true));
+showFormButton.addEventListener("click", () => { updateEditorVisibility(true); updateWeekdayFields(); });
+showEverytimeImportButton.addEventListener("click", () => {
+  everytimeImportForm.hidden = false;
+  showEverytimeImportButton.hidden = true;
+  showFormButton.hidden = true;
+});
+document.querySelector("#cancel-everytime-import").addEventListener("click", () => {
+  everytimeImportForm.hidden = true;
+  updateEditorVisibility(false);
+});
+everytimeImportForm.addEventListener("submit", () => {
+  const submitButton = everytimeImportForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  submitButton.textContent = "이미지 분석 중…";
+  everytimeImportForm.setAttribute("aria-busy", "true");
+  document.querySelector("#everytime-import-progress").hidden = false;
+});
 cancelEdit.addEventListener("click", resetForm);
 cancelEditSecondary.addEventListener("click", resetForm);
-document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => radio.addEventListener("change", () => setScheduleType(radio.value)));
+document.querySelectorAll('input[name="schedule_type"]').forEach((radio) => radio.addEventListener("change", () => { setScheduleType(radio.value); updateWeekdayFields(); }));
 document.querySelectorAll(".source-tab").forEach((tab) => {
   tab.addEventListener("click", () => selectSource(tab.dataset.source));
   tab.addEventListener("keydown", (event) => {
@@ -322,6 +355,7 @@ document.querySelectorAll(".edit-block").forEach((button) => button.addEventList
   document.querySelector("#title-input").value = block.title;
   document.querySelector(`input[name="schedule_type"][value="${block.isRecurring ? "recurring" : "one_time"}"]`).checked = true;
   setScheduleType(block.isRecurring ? "recurring" : "one_time");
+  updateWeekdayFields();
   document.querySelector("#weekday-input").value = block.weekday ?? 0;
   document.querySelector("#start-time-input").value = block.startTime ?? "";
   document.querySelector("#end-time-input").value = block.endTime ?? "";

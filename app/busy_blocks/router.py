@@ -66,6 +66,7 @@ def create_block(
     title: str = Form(),
     schedule_type: str = Form(),
     weekday: int | None = Form(None),
+    weekdays: list[int] = Form([]),
     start_time: time | None = Form(None),
     end_time: time | None = Form(None),
     starts_at: datetime | None = Form(None),
@@ -77,11 +78,12 @@ def create_block(
 ):
     user_id = _current_user_id(request, db)
     default_before, default_after = service.buffer_defaults(db, user_id)[source]
+    effective_weekday = weekdays[0] if weekdays else weekday
     data = _to_input(
         source=source,
         title=title,
         schedule_type=schedule_type,
-        weekday=weekday,
+        weekday=effective_weekday,
         start_time=start_time,
         end_time=end_time,
         starts_at=starts_at,
@@ -94,7 +96,17 @@ def create_block(
         else default_after,
         allow_google=False,
     )
-    service.create(db, user_id, data)
+    selected_weekdays = weekdays or [effective_weekday]
+    if schedule_type == "recurring" and source == "timetable" and len(selected_weekdays) > 1:
+        try:
+            blocks = [
+                data.model_copy(update={"weekday": selected}) for selected in selected_weekdays
+            ]
+            service.create_many(db, user_id, blocks)
+        except ValidationError as error:
+            raise HTTPException(status_code=422, detail=error.errors()) from error
+    else:
+        service.create(db, user_id, data)
     return RedirectResponse(url="/dashboard", status_code=303)
 
 
@@ -178,4 +190,15 @@ def delete_block(
 
         google_calendar_service.exclude_event(db, user_id, block.external_event_id)
     service.delete(db, block)
+    return RedirectResponse(url="/dashboard", status_code=303)
+
+
+@router.post("/timetable/reset")
+def reset_timetable(
+    request: Request,
+    db: Session = Depends(get_db),
+    _: None = Depends(require_csrf),
+):
+    user_id = _current_user_id(request, db)
+    service.delete_for_source(db, user_id, "timetable")
     return RedirectResponse(url="/dashboard", status_code=303)
