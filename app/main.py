@@ -7,6 +7,8 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.accounts.router import router as accounts_router
+from app.availability.router import router as availability_router
+from app.bookmarklet.router import router as bookmarklet_router
 from app.busy_blocks.router import router as busy_blocks_router
 from app.core.config import get_settings
 from app.web.router import router as web_router
@@ -41,6 +43,8 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "web" / "static"), name="s
 app.include_router(web_router)
 app.include_router(accounts_router)
 app.include_router(busy_blocks_router)
+app.include_router(availability_router)
+app.include_router(bookmarklet_router)
 
 
 @app.get("/health")
