@@ -43,6 +43,15 @@ def home(
     )
 
 
+@router.get("/privacy")
+def privacy_policy(request: Request, settings: Settings = Depends(get_settings)):
+    return templates.TemplateResponse(
+        request,
+        "privacy.html",
+        {"privacy_contact_email": settings.privacy_contact_email},
+    )
+
+
 def _block_for_client(block: BusyBlock) -> dict[str, str | int | bool | None]:
     starts_at = as_seoul_time(block.starts_at) if block.starts_at else None
     ends_at = as_seoul_time(block.ends_at) if block.ends_at else None

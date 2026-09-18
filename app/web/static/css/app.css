@@ -112,6 +112,16 @@ fieldset input, .checkbox-label input { width: auto; min-height: auto; }
 .bookmarklet-token > span { margin-right: auto; }
 .token-info { flex-basis: 100%; margin: 0; color: #65675f; font-size: 13px; line-height: 1.45; }
 .bookmarklet-token.is-recently-revoked { color: #65675f; }
+.site-footer { width: min(100% - 40px, 1200px); margin: 0 auto 28px; color: #65675f; font-size: 13px; }
+.site-footer a { color: inherit; }
+.legal-page { width: min(100% - 40px, 760px); margin: 48px auto 64px; color: #3c403b; line-height: 1.7; }
+.legal-page h1 { margin: 0; color: #292824; font-size: clamp(30px, 5vw, 42px); letter-spacing: -0.04em; }
+.legal-page h2 { margin: 36px 0 10px; color: #292824; font-size: 19px; }
+.legal-page p { margin: 10px 0; }
+.legal-page ul { display: grid; gap: 8px; padding-left: 22px; }
+.legal-eyebrow, .legal-date { color: #65675f; font-size: 14px; }
+.legal-eyebrow { margin: 0 0 8px !important; font-weight: 700; }
+.legal-date { margin-top: 6px !important; }
 .bookmarklet-dialog { width: min(calc(100% - 32px), 480px); margin: auto; padding: 0; border: 1px solid #deddd8; border-radius: 8px; background: #fff; color: #292824; }
 .bookmarklet-dialog::backdrop { background: rgb(34 35 31 / .36); }
 .dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-bottom: 1px solid #e5e4df; }
