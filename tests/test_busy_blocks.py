@@ -85,7 +85,7 @@ def test_busy_block_crud_is_authenticated_and_owned(
         follow_redirects=False,
     )
     assert created.status_code == 303
-    block = db_session.query(BusyBlock).one()
+    block = db_session.query(BusyBlock).filter_by(title="Algorithms").one()
     assert block.title == "Algorithms"
     assert block.user_id > 0
 
@@ -129,7 +129,12 @@ def test_creates_one_timetable_block_per_selected_weekday(
     )
 
     assert response.status_code == 303
-    blocks = db_session.query(BusyBlock).order_by(BusyBlock.weekday).all()
+    blocks = (
+        db_session.query(BusyBlock)
+        .filter_by(title="Algorithms")
+        .order_by(BusyBlock.weekday)
+        .all()
+    )
     assert [(block.weekday, block.title) for block in blocks] == [
         (1, "Algorithms"),
         (3, "Algorithms"),
@@ -157,7 +162,12 @@ def test_creates_one_manual_block_per_selected_weekday(
     )
 
     assert response.status_code == 303
-    blocks = db_session.query(BusyBlock).order_by(BusyBlock.weekday).all()
+    blocks = (
+        db_session.query(BusyBlock)
+        .filter_by(title="Study group")
+        .order_by(BusyBlock.weekday)
+        .all()
+    )
     assert [(block.weekday, block.title, block.source) for block in blocks] == [
         (0, "Study group", "manual"),
         (2, "Study group", "manual"),
@@ -187,7 +197,7 @@ def test_invalid_recurring_block_returns_controlled_form_error(
     assert response.status_code == 303
     dashboard = client.get("/dashboard")
     assert "반복 일정의 시작과 종료 시간은 같을 수 없습니다." in dashboard.text
-    assert db_session.query(BusyBlock).count() == 0
+    assert db_session.query(BusyBlock).filter_by(title="Zero length").count() == 0
 
 
 def test_invalid_block_source_returns_controlled_form_error(
@@ -213,7 +223,7 @@ def test_invalid_block_source_returns_controlled_form_error(
     assert response.status_code == 303
     dashboard = client.get("/dashboard")
     assert "일정 출처를 확인해 주세요." in dashboard.text
-    assert db_session.query(BusyBlock).count() == 0
+    assert db_session.query(BusyBlock).filter_by(title="Invalid source").count() == 0
 
 
 def test_resets_only_the_current_users_timetable(client: TestClient, db_session: Session) -> None:
@@ -247,7 +257,9 @@ def test_resets_only_the_current_users_timetable(client: TestClient, db_session:
     response = client.post("/blocks/timetable/reset", data={"csrf_token": csrf_token})
 
     assert response.status_code == 200
-    assert [block.source for block in db_session.query(BusyBlock).all()] == ["manual"]
+    blocks = db_session.query(BusyBlock).all()
+    assert all(block.source == "manual" for block in blocks)
+    assert {block.title for block in blocks} == {"수면", "Appointment"}
 
 
 def test_form_actions_require_a_valid_csrf_token(client: TestClient) -> None:
