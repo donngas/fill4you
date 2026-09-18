@@ -16,12 +16,13 @@ form { display: inline; }
 .dashboard { width: min(100% - 3rem, 76rem); margin: 3rem auto; }
 .dashboard-header, .preview-heading, .block-card, .source-tabs, .form-actions, .block-list-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
 .dashboard-header h1 { font-size: 2.5rem; margin: .25rem 0; }
-.dashboard-layout { display: grid; grid-template-columns: minmax(19rem, 25rem) 1fr; gap: 2rem; align-items: start; }
-.schedule-editor, .calendar-preview { background: white; border: 1px solid #e6e8ef; border-radius: .75rem; padding: 1rem; }
+.dashboard-layout { display: grid; grid-template-columns: minmax(19rem, 25rem) minmax(0, 1fr); gap: 2rem; align-items: start; }
+.schedule-editor, .calendar-preview { min-width: 0; background: white; border: 1px solid #e6e8ef; border-radius: .75rem; padding: 1rem; }
 .source-tabs { align-items: stretch; justify-content: stretch; border-bottom: 1px solid #e6e8ef; }
 .source-tab { flex: 1; background: transparent; color: #59667f; border-radius: .4rem .4rem 0 0; padding: .6rem .25rem; font-size: .8rem; }
 .source-tab.is-active { color: #172033; background: #edf1ff; }
 .block-form { display: grid; gap: .85rem; margin: 1rem 0; }
+.block-form[hidden] { display: none !important; }
 .block-form h2, .block-list h2, .preview-heading h2 { margin: 0; font-size: 1rem; }
 label { display: grid; gap: .35rem; font-size: .86rem; font-weight: 600; }
 input, select { width: 100%; padding: .55rem; border: 1px solid #cfd5e2; border-radius: .4rem; background: white; font: inherit; }
@@ -38,7 +39,7 @@ fieldset input { width: auto; }
 .block-card strong, .block-card span { width: 100%; }
 .block-card span, .empty-state, .preview-heading span { color: #65718a; font-size: .85rem; }
 .block-card button { margin-right: .35rem; }
-.calendar-scroll { overflow-x: auto; border: 1px solid #edf0f4; border-radius: .5rem; }
+.calendar-scroll { width: 100%; max-width: 100%; overflow-x: auto; border: 1px solid #edf0f4; border-radius: .5rem; }
 .calendar-canvas { display: flex; width: max-content; min-height: 100%; }
 .week-grid { display: grid; position: relative; width: max-content; }
 .day-heading, .hour-label { color: #65718a; font-size: .75rem; text-align: center; }
@@ -46,5 +47,6 @@ fieldset input { width: auto; }
 .hour-cell { height: 56px; border-top: 1px solid #edf0f4; border-left: 1px solid #edf0f4; }
 .preview-block { position: absolute; z-index: 1; width: calc(8rem - .5rem); padding: .25rem; overflow: hidden; border-radius: .25rem; background: #cddaff; color: #152664; font-size: .7rem; }
 .source-manual { background: #d8f1df; color: #185c2a; }.source-google_calendar { background: #fce2bd; color: #7c4200; }
-.load-more-panel { display: grid; place-items: start center; width: 10rem; padding: .75rem; border-left: 1px solid #edf0f4; }
+.load-more-panel { display: grid; place-items: start center; width: 7rem; padding: .75rem; border-left: 1px solid #edf0f4; }
+.load-more-button { padding: .25rem; background: transparent; color: #315efb; font-size: .85rem; }
 @media (max-width: 48rem) { .dashboard-layout { grid-template-columns: 1fr; }.dashboard { width: min(100% - 2rem, 76rem); } }
