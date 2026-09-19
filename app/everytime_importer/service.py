@@ -122,7 +122,14 @@ def _detect_grid(image: np.ndarray) -> _Grid:
 def _neutral_grid_mask(image: np.ndarray) -> np.ndarray:
     maximum = image.max(axis=2)
     minimum = image.min(axis=2)
-    return ((maximum - minimum) < 10) & (maximum > 180) & (maximum < 250)
+    # Everytime uses neutral gray grid lines in both themes.  Light exports use a pale gray
+    # (roughly RGB 230), whereas dark exports use RGB 49 over an RGB 17 background.  Looking
+    # for both ranges keeps class tiles out of the lattice score: their coloured fills have a
+    # substantially wider channel spread.
+    neutral = (maximum - minimum) < 10
+    light_grid = (maximum > 180) & (maximum < 250)
+    dark_grid = (maximum > 35) & (maximum < 100)
+    return neutral & (light_grid | dark_grid)
 
 
 def _window_max(values: np.ndarray, center: int, radius: int) -> float:

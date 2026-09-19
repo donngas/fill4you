@@ -3,15 +3,22 @@ from datetime import time
 
 import cv2
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 
 from app.everytime_importer import parse_everytime_image
 from app.everytime_importer import router as everytime_router
 
 
-def test_parser_hands_quarter_hour_geometry_to_busy_block_contract() -> None:
-    image = np.full((650, 530, 3), 255, dtype=np.uint8)
-    grid_color = (230, 230, 230)
+@pytest.mark.parametrize(
+    ("background_color", "grid_color"),
+    [((255, 255, 255), (230, 230, 230)), ((17, 17, 17), (49, 49, 49))],
+    ids=["light-theme", "dark-theme"],
+)
+def test_parser_hands_quarter_hour_geometry_to_busy_block_contract(
+    background_color: tuple[int, int, int], grid_color: tuple[int, int, int]
+) -> None:
+    image = np.full((650, 530, 3), background_color, dtype=np.uint8)
     left, day_width, top, hour_height = 30, 100, 40, 120
     for x in range(left, 531, day_width):
         cv2.line(image, (x, 0), (x, 649), grid_color, 2)
